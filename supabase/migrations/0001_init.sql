@@ -1,4 +1,4 @@
--- FinJey — schema inicial
+-- Fluxa — schema inicial
 -- Rode este script inteiro no Supabase: Dashboard > SQL Editor > New query > Run
 
 create extension if not exists "pgcrypto";

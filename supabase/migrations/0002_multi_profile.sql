@@ -1,4 +1,4 @@
--- FinJey — schema v2: múltiplos perfis (CPF/CNPJ) por conta
+-- Fluxa — schema v2: múltiplos perfis (CPF/CNPJ) por conta
 -- Recria o banco do zero (não há dados reais a preservar, só a conta de teste).
 -- Rode este script inteiro no Supabase: Dashboard > SQL Editor > New query > Run
 

@@ -76,7 +76,7 @@ export default function FeedbackPage() {
             required
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Conte o que você percebeu ou gostaria de ver no FinJey"
+            placeholder="Conte o que você percebeu ou gostaria de ver no Fluxa"
             rows={4}
             className="w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />

@@ -61,7 +61,7 @@ export function Header({
           <MenuIcon className="h-5 w-5" />
         </button>
         <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          FinJey
+          Fluxa
         </span>
         <ProfileSwitcher />
       </div>

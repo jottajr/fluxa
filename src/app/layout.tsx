@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinJey",
+  title: "Fluxa",
   description: "Gestão financeira pessoal",
 };
 
