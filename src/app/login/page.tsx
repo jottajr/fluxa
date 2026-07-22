@@ -93,7 +93,7 @@ export default function LoginPage() {
         </div>
         <p className="mt-1 text-center text-sm text-slate-500 dark:text-slate-400">
           {mode === "login"
-            ? "Entre para acessar suas finanças."
+            ? "Controle financeiro simples e sem complicação."
             : "Crie sua conta para começar."}
         </p>
 
