@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Fluxa",
   description: "Gestão financeira pessoal",
+  appleWebApp: {
+    title: "Fluxa",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({

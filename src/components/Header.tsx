@@ -60,7 +60,8 @@ export function Header({
         >
           <MenuIcon className="h-5 w-5" />
         </button>
-        <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <span className="flex items-center gap-1.5 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <img src="/fluxa-icon.png" alt="" className="h-7 w-7" />
           Fluxa
         </span>
         <ProfileSwitcher />

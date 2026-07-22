@@ -85,10 +85,13 @@ export default function LoginPage() {
           <ThemeToggle />
         </div>
 
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Fluxa
-        </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col items-center gap-3">
+          <img src="/fluxa-icon.png" alt="" className="h-14 w-auto" />
+          <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Fluxa
+          </span>
+        </div>
+        <p className="mt-1 text-center text-sm text-slate-500 dark:text-slate-400">
           {mode === "login"
             ? "Entre para acessar suas finanças."
             : "Crie sua conta para começar."}
