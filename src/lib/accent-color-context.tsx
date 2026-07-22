@@ -8,9 +8,10 @@ import {
   type ReactNode,
 } from "react";
 
-export type AccentColor = "teal" | "blue" | "coral" | "pink" | "amber";
+export type AccentColor = "teal" | "blue" | "coral" | "pink" | "amber" | "purple";
 
 export const ACCENT_COLOR_OPTIONS: { value: AccentColor; label: string; swatch: string }[] = [
+  { value: "purple", label: "Roxo", swatch: "#7C6CF0" },
   { value: "teal", label: "Verde-azulado", swatch: "#1D9E75" },
   { value: "blue", label: "Azul", swatch: "#378ADD" },
   { value: "coral", label: "Coral", swatch: "#D85A30" },
@@ -22,6 +23,7 @@ const ACCENT_COLOR_VALUES: Record<
   AccentColor,
   { accent: string; hover: string; fg: string }
 > = {
+  purple: { accent: "#5b3fa8", hover: "#452f82", fg: "#ffffff" },
   teal: { accent: "#0f6e56", hover: "#085041", fg: "#ffffff" },
   blue: { accent: "#185fa5", hover: "#0c447c", fg: "#ffffff" },
   coral: { accent: "#993c1d", hover: "#712b13", fg: "#ffffff" },
