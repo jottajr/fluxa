@@ -13,6 +13,7 @@ import { StatusBadge, STATUS_LABELS } from "@/components/StatusBadge";
 import { Modal } from "@/components/Modal";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { PencilIcon } from "@/components/icons/PencilIcon";
+import { EmptyState } from "@/components/EmptyState";
 import { getPaymentMethodLabel } from "@/lib/payment-methods";
 import type { Transaction, TransactionStatus, TransactionType } from "@/types";
 
@@ -234,7 +235,7 @@ export default function TransacoesPage() {
     : null;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-10">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
@@ -501,20 +502,20 @@ export default function TransacoesPage() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">Entradas</p>
-          <p className="mt-1 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+          <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
             {formatCurrency(totals.entradas)}
           </p>
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">Saídas</p>
-          <p className="mt-1 text-2xl font-semibold text-red-600 dark:text-red-400">
+          <p className="mt-1 text-2xl font-medium text-red-600 dark:text-red-400">
             {formatCurrency(totals.saidas)}
           </p>
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">Saldo</p>
           <p
-            className={`mt-1 text-2xl font-semibold ${
+            className={`mt-1 text-2xl font-medium ${
               totals.saldo >= 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-red-600 dark:text-red-400"
@@ -676,11 +677,12 @@ export default function TransacoesPage() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500"
-                >
-                  Nenhuma transação encontrada neste período.
+                <td colSpan={7}>
+                  <EmptyState
+                    message="Nenhuma transação encontrada neste período."
+                    actionLabel="Nova transação"
+                    onAction={openNewModal}
+                  />
                 </td>
               </tr>
             )}

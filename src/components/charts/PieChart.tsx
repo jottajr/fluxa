@@ -57,7 +57,7 @@ export function PieChart({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
           {centerLabel && (
-            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <span className="text-base font-medium text-slate-900 dark:text-slate-100">
               {centerLabel}
             </span>
           )}

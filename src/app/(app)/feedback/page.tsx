@@ -43,7 +43,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-10">
       <div>
         <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
           Feedback

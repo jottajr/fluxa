@@ -98,7 +98,7 @@ export default function PaymentMethodDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-10">
       <div>
         <Link
           href="/pagamentos"
@@ -143,7 +143,7 @@ export default function PaymentMethodDetailPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Total comprometido no mês
           </p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <p className="mt-1 text-2xl font-medium text-slate-900 dark:text-slate-100">
             {formatCurrency(total)}
           </p>
         </div>

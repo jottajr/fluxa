@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/format";
+import { EmptyState } from "@/components/EmptyState";
 
 export interface CategoryBreakdownItem {
   name: string;
@@ -15,9 +16,11 @@ export function CategoryBreakdownBars({
 
   if (data.length === 0) {
     return (
-      <p className="text-sm text-slate-400 dark:text-slate-500">
-        Nenhum gasto categorizado neste período.
-      </p>
+      <EmptyState
+        message="Nenhum gasto categorizado neste período."
+        actionLabel="Adicionar transação"
+        actionHref="/transacoes"
+      />
     );
   }
 
