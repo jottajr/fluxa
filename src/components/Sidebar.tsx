@@ -2,16 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  CategoriasIcon,
+  ConfiguracoesIcon,
+  DashboardIcon,
+  InvestimentosIcon,
+  MetasIcon,
+  PagamentosIcon,
+  SobreIcon,
+  TransacoesIcon,
+} from "@/components/icons/SidebarIcons";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/transacoes", label: "Transações" },
-  { href: "/pagamentos", label: "Pagamentos" },
-  { href: "/categorias", label: "Categorias" },
-  { href: "/investimentos", label: "Investimentos" },
-  { href: "/metas", label: "Metas" },
-  { href: "/configuracoes", label: "Configurações" },
-  { href: "/sobre", label: "Conheça o Fluxa" },
+  { href: "/dashboard", label: "Dashboard", Icon: DashboardIcon },
+  { href: "/transacoes", label: "Transações", Icon: TransacoesIcon },
+  { href: "/pagamentos", label: "Pagamentos", Icon: PagamentosIcon },
+  { href: "/categorias", label: "Categorias", Icon: CategoriasIcon },
+  { href: "/investimentos", label: "Investimentos", Icon: InvestimentosIcon },
+  { href: "/metas", label: "Metas", Icon: MetasIcon },
+  { href: "/configuracoes", label: "Configurações", Icon: ConfiguracoesIcon },
+  { href: "/sobre", label: "Conheça o Fluxa", Icon: SobreIcon },
 ];
 
 function NavLinks({
@@ -25,17 +35,19 @@ function NavLinks({
     <nav className="flex-1 space-y-1 px-3 py-4">
       {NAV_ITEMS.map((item) => {
         const isActive = pathname.startsWith(item.href);
+        const { Icon } = item;
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               isActive
                 ? "btn-primary"
                 : "text-slate-600 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] dark:text-slate-400 dark:hover:bg-[var(--accent)]/15 dark:hover:text-[var(--accent)]"
             }`}
           >
+            <Icon className="h-[18px] w-[18px] shrink-0" />
             {item.label}
           </Link>
         );
