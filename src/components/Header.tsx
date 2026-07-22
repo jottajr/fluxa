@@ -25,7 +25,6 @@ export function Header({
   const accountLinks = [
     { href: "/importar-exportar", label: "Importar/Exportar" },
     { href: "/feedback", label: "Feedback" },
-    { href: "/sobre", label: "Conheça o Fluxa" },
     { href: "/configuracoes", label: "Configurações" },
   ];
   const isAccountSectionActive = accountLinks.some((link) =>

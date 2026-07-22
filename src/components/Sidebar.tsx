@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/investimentos", label: "Investimentos" },
   { href: "/metas", label: "Metas" },
   { href: "/configuracoes", label: "Configurações" },
+  { href: "/sobre", label: "Conheça o Fluxa" },
 ];
 
 function NavLinks({

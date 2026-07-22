@@ -1,5 +1,11 @@
-const sectionSpacing = "border-t border-slate-200 pt-10 dark:border-slate-800";
 const bodyText = "text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300";
+const panel =
+  "dark:rounded-2xl dark:border dark:border-slate-800 dark:bg-slate-900/60 dark:p-8 dark:shadow-lg dark:shadow-black/20";
+const sectionSpacing = `border-t border-slate-200 pt-10 dark:border-t dark:pt-8 ${panel}`;
+const sectionTitle =
+  "text-2xl font-bold text-[var(--accent)] sm:text-3xl dark:text-slate-100";
+const subtitle =
+  "text-lg font-semibold text-slate-900 sm:text-xl dark:text-slate-100";
 
 const faqItems: { question: string; answer: string }[] = [
   {
@@ -10,7 +16,7 @@ const faqItems: { question: string; answer: string }[] = [
   {
     question: "O Fluxa possui integração com bancos?",
     answer:
-      "Não há sincronização automática nem integração via Open Finance — essa foi uma decisão intencional. Você pode importar um extrato em CSV quando quiser, mas revisa e categoriza cada lançamento manualmente antes de confirmar, mantendo o controle consciente sobre seus dados.",
+      "Não há sincronização automática nem integração via Open Finance. Essa foi uma decisão intencional. Você pode importar um extrato em CSV quando quiser, mas revisa e categoriza cada lançamento manualmente antes de confirmar, mantendo o controle consciente sobre seus dados.",
   },
   {
     question: "Por que o preenchimento é manual?",
@@ -32,32 +38,33 @@ const faqItems: { question: string; answer: string }[] = [
 export default function SobrePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-16 pb-16">
-      <div className="space-y-6 text-center">
+      <div className={`space-y-6 text-center ${panel}`}>
         <img src="/fluxa-icon.png" alt="" className="mx-auto h-16 w-auto" />
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl dark:text-slate-100">
           Conheça o Fluxa
         </h1>
-        <p className={`${bodyText} mx-auto max-w-2xl`}>
-          O Fluxa nasceu de uma experiência real. Depois de testar planilhas,
-          aplicativos financeiros e diferentes métodos de controle, ficou
-          claro que o problema não era a falta de recursos — era o excesso
-          deles. A maioria das pessoas não precisa de mais informações.
-          Precisa de mais clareza. O Fluxa foi criado para transformar o
-          controle financeiro em um hábito simples e sustentável.
-        </p>
+        <div className="mx-auto max-w-2xl space-y-4">
+          <p className={bodyText}>
+            O Fluxa nasceu de uma experiência real. Depois de testar
+            planilhas, aplicativos financeiros e diferentes métodos de
+            controle, ficou claro que o problema não era a falta de recursos.
+            Era o excesso deles.
+          </p>
+          <p className={bodyText}>
+            A maioria das pessoas não precisa de mais informações. Precisa de
+            mais clareza. O Fluxa foi criado para transformar o controle
+            financeiro em um hábito simples e sustentável.
+          </p>
+        </div>
       </div>
 
       <section className={`${sectionSpacing} space-y-8`}>
-        <p className="text-sm font-medium uppercase tracking-wide text-[var(--accent)]">
-          Filosofia
-        </p>
+        <h2 className={sectionTitle}>Filosofia</h2>
 
         <div className="space-y-3">
-          <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl dark:text-slate-100">
-            Menos automação. Mais consciência.
-          </h2>
+          <h3 className={subtitle}>Menos automação. Mais consciência.</h3>
           <p className={bodyText}>
-            Muitos aplicativos registram tudo automaticamente — mas registrar
+            Muitos aplicativos registram tudo automaticamente. Mas registrar
             não significa entender. Quando você adiciona suas receitas e
             despesas manualmente, cria uma conexão maior com seus hábitos e
             passa a perceber padrões que normalmente passariam despercebidos.
@@ -65,11 +72,9 @@ export default function SobrePage() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl dark:text-slate-100">
-            Simplicidade é uma escolha.
-          </h2>
+          <h3 className={subtitle}>Simplicidade é uma escolha.</h3>
           <p className={bodyText}>
-            Cada funcionalidade do Fluxa existe por um motivo — nunca porque é
+            Cada funcionalidade do Fluxa existe por um motivo. Nunca porque é
             popular ou porque outros aplicativos têm. O objetivo é manter uma
             experiência simples e fácil de usar por meses e anos, não só nos
             primeiros dias. Porque não importa quantos recursos um app tem se
@@ -80,22 +85,20 @@ export default function SobrePage() {
       </section>
 
       <section className={`${sectionSpacing} space-y-8`}>
-        <p className="text-sm font-medium uppercase tracking-wide text-[var(--accent)]">
-          Perguntas frequentes
-        </p>
+        <h2 className={sectionTitle}>Perguntas frequentes</h2>
         <div className="space-y-8">
           {faqItems.map((item) => (
             <div key={item.question} className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {item.question}
-              </h2>
+              <h3 className={subtitle}>{item.question}</h3>
               <p className={bodyText}>{item.answer}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <p className="border-t border-slate-200 pt-10 text-center text-xl font-semibold text-[var(--accent)] sm:text-2xl dark:border-slate-800 dark:text-slate-100">
+      <p
+        className={`border-t border-slate-200 pt-10 text-center text-xl font-semibold text-[var(--accent)] sm:text-2xl dark:border-t dark:pt-8 dark:text-slate-100 ${panel}`}
+      >
         Fluxa. Seu dinheiro com mais clareza e menos complicação.
       </p>
     </div>
