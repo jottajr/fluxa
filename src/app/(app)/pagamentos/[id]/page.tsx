@@ -110,7 +110,7 @@ export default function PaymentMethodDetailPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
             {icon && <span>{icon}</span>}
             {title}
           </h1>

@@ -237,7 +237,7 @@ export default function TransacoesPage() {
     <div className="mx-auto max-w-5xl space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
             Transações - {formatPeriodLabel(periodType, year, subPeriod)}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
