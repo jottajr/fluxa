@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { formatCurrency } from "@/lib/format";
 import { getPaymentMethodLabel } from "@/lib/payment-methods";
+import { PRIMARY_CURRENCY } from "@/lib/currency";
 import { Modal } from "@/components/Modal";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import type { BudgetGoal } from "@/types";
@@ -42,7 +43,12 @@ export default function MetasPage() {
   const monthSpendByCategory = useMemo(() => {
     const totals = new Map<string, number>();
     transactions
-      .filter((tx) => tx.type === "saida" && tx.date.startsWith(currentMonth))
+      .filter(
+        (tx) =>
+          tx.type === "saida" &&
+          tx.date.startsWith(currentMonth) &&
+          tx.currency === PRIMARY_CURRENCY,
+      )
       .forEach((tx) => {
         if (!tx.categoryId) return;
         totals.set(tx.categoryId, (totals.get(tx.categoryId) ?? 0) + tx.amount);
@@ -53,7 +59,12 @@ export default function MetasPage() {
   const monthSpendByPaymentMethod = useMemo(() => {
     const totals = new Map<string, number>();
     transactions
-      .filter((tx) => tx.type === "saida" && tx.date.startsWith(currentMonth))
+      .filter(
+        (tx) =>
+          tx.type === "saida" &&
+          tx.date.startsWith(currentMonth) &&
+          tx.currency === PRIMARY_CURRENCY,
+      )
       .forEach((tx) => {
         if (!tx.paymentMethodId) return;
         totals.set(

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import { CATEGORICAL } from "@/lib/chart-colors";
+import { PRIMARY_CURRENCY } from "@/lib/currency";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PieChart, type PieSlice } from "@/components/charts/PieChart";
 
@@ -43,9 +44,20 @@ export default function PaymentMethodDetailPage() {
     [methodTransactions, selectedMonth],
   );
 
-  const total = monthTransactions.reduce((sum, tx) => {
-    return tx.type === "saida" ? sum + tx.amount : sum - tx.amount;
-  }, 0);
+  const total = monthTransactions
+    .filter((tx) => tx.currency === PRIMARY_CURRENCY)
+    .reduce((sum, tx) => {
+      return tx.type === "saida" ? sum + tx.amount : sum - tx.amount;
+    }, 0);
+
+  const totalGastos = monthTransactions
+    .filter((tx) => tx.type === "saida" && tx.currency === PRIMARY_CURRENCY)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const milesEarned =
+    card?.milesRatioAmount && card?.milesRatioMiles
+      ? Math.floor(totalGastos / card.milesRatioAmount) * card.milesRatioMiles
+      : null;
 
   const percentUsed = card?.creditLimit
     ? Math.round((total / card.creditLimit) * 100)
@@ -63,7 +75,7 @@ export default function PaymentMethodDetailPage() {
   const categoryBreakdown: PieSlice[] = useMemo(() => {
     const totals = new Map<string, number>();
     monthTransactions
-      .filter((tx) => tx.type === "saida")
+      .filter((tx) => tx.type === "saida" && tx.currency === PRIMARY_CURRENCY)
       .forEach((tx) => {
         const key = tx.categoryId ?? "sem-categoria";
         totals.set(key, (totals.get(key) ?? 0) + tx.amount);
@@ -138,7 +150,7 @@ export default function PaymentMethodDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Total comprometido no mês
@@ -147,6 +159,17 @@ export default function PaymentMethodDetailPage() {
             {formatCurrency(total)}
           </p>
         </div>
+
+        {milesEarned !== null && (
+          <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Milhas ganhas no mês
+            </p>
+            <p className="mt-1 text-2xl font-medium text-slate-900 dark:text-slate-100">
+              {milesEarned.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+            </p>
+          </div>
+        )}
 
         {percentUsed !== null && (
           <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -229,7 +252,7 @@ export default function PaymentMethodDetailPage() {
                   }`}
                 >
                   {tx.type === "entrada" ? "+" : "-"}
-                  {formatCurrency(tx.amount)}
+                  {formatCurrency(tx.amount, tx.currency)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <StatusBadge status={tx.status} />

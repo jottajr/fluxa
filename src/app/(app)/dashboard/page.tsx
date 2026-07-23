@@ -8,24 +8,30 @@ import { CATEGORICAL, DIVERGING } from "@/lib/chart-colors";
 import { PieChart } from "@/components/charts/PieChart";
 import { EmptyState } from "@/components/EmptyState";
 import {
+  type DateRange,
   type PeriodType,
   defaultSubPeriodFor,
   formatPeriodLabel,
-  getMonthsInPeriod,
+  getPeriodRange,
 } from "@/lib/period";
 import { PeriodSelector } from "@/components/PeriodSelector";
-import { MonthlyTrendChart } from "@/components/charts/MonthlyTrendChart";
 import {
   CategoryBreakdownBars,
   type CategoryBreakdownItem,
 } from "@/components/charts/CategoryBreakdownBars";
+import {
+  PRIMARY_CURRENCY,
+  secondaryCurrencyTotals,
+  sumByCurrency,
+} from "@/lib/currency";
+import type { Currency } from "@/types";
 
-function sumByType(
-  transactions: { type: string; amount: number }[],
+function sumByTypePrimary(
+  transactions: { type: string; amount: number; currency: Currency }[],
   type: "entrada" | "saida",
 ) {
   return transactions
-    .filter((tx) => tx.type === type)
+    .filter((tx) => tx.type === type && tx.currency === PRIMARY_CURRENCY)
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
@@ -61,7 +67,7 @@ function Variation({
 }
 
 export default function DashboardPage() {
-  const { transactions, categories } = useFinanceData();
+  const { transactions, categories, cards } = useFinanceData();
   const { userName } = useUser();
 
   const today = new Date();
@@ -71,6 +77,7 @@ export default function DashboardPage() {
   const [periodType, setPeriodType] = useState<PeriodType>("mensal");
   const [year, setYear] = useState(currentYear);
   const [subPeriod, setSubPeriod] = useState(currentMonth);
+  const [customRange, setCustomRange] = useState<DateRange | null>(null);
 
   const years = useMemo(() => {
     const unique = new Set(transactions.map((tx) => Number(tx.date.slice(0, 4))));
@@ -83,35 +90,43 @@ export default function DashboardPage() {
     setSubPeriod(defaultSubPeriodFor(newType, currentMonth));
   }
 
-  function handleMonthClick(month: string) {
-    const [clickedYear, clickedMonth] = month.split("-").map(Number);
-    setPeriodType("mensal");
-    setYear(clickedYear);
-    setSubPeriod(clickedMonth);
-  }
-
-  const periodMonths = useMemo(
-    () => getMonthsInPeriod(periodType, year, subPeriod),
-    [periodType, year, subPeriod],
+  const periodRange = useMemo(
+    () => getPeriodRange(periodType, year, subPeriod, customRange),
+    [periodType, year, subPeriod, customRange],
   );
 
   const periodTransactions = useMemo(
     () =>
-      transactions.filter((tx) => periodMonths.includes(tx.date.slice(0, 7))),
-    [transactions, periodMonths],
+      transactions.filter(
+        (tx) => tx.date >= periodRange.start && tx.date <= periodRange.end,
+      ),
+    [transactions, periodRange],
   );
 
-  const entradas = useMemo(
-    () => sumByType(periodTransactions, "entrada"),
+  const entradasByCurrency = useMemo(
+    () => sumByCurrency(periodTransactions.filter((tx) => tx.type === "entrada")),
+    [periodTransactions],
+  );
+  const saidasByCurrency = useMemo(
+    () => sumByCurrency(periodTransactions.filter((tx) => tx.type === "saida")),
     [periodTransactions],
   );
 
-  const saidas = useMemo(
-    () => sumByType(periodTransactions, "saida"),
-    [periodTransactions],
-  );
-
+  const entradas = entradasByCurrency[PRIMARY_CURRENCY] ?? 0;
+  const saidas = saidasByCurrency[PRIMARY_CURRENCY] ?? 0;
   const saldo = entradas - saidas;
+
+  const secondaryCurrencies = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...Object.keys(entradasByCurrency), ...Object.keys(saidasByCurrency)].filter(
+            (c) => c !== PRIMARY_CURRENCY,
+          ),
+        ),
+      ) as Currency[],
+    [entradasByCurrency, saidasByCurrency],
+  );
 
   const previousMonthTransactions = useMemo(() => {
     if (periodType !== "mensal") return null;
@@ -123,35 +138,54 @@ export default function DashboardPage() {
 
   const previousEntradas =
     previousMonthTransactions !== null
-      ? sumByType(previousMonthTransactions, "entrada")
+      ? sumByTypePrimary(previousMonthTransactions, "entrada")
       : null;
   const previousSaidas =
     previousMonthTransactions !== null
-      ? sumByType(previousMonthTransactions, "saida")
+      ? sumByTypePrimary(previousMonthTransactions, "saida")
       : null;
   const previousSaldo =
     previousEntradas !== null && previousSaidas !== null
       ? previousEntradas - previousSaidas
       : null;
 
-  const trendData = useMemo(
-    () =>
-      periodMonths.map((month) => {
-        const monthTx = transactions.filter((tx) => tx.date.startsWith(month));
+  const cardBreakdown: CategoryBreakdownItem[] = useMemo(() => {
+    const totalsByCard = new Map<string, number>();
+
+    periodTransactions
+      .filter(
+        (tx) =>
+          tx.type === "saida" &&
+          tx.paymentMethodId &&
+          tx.currency === PRIMARY_CURRENCY,
+      )
+      .forEach((tx) => {
+        const card = cards.find(
+          (c) =>
+            c.id === tx.paymentMethodId &&
+            (c.type === "credito" || c.type === "ambos"),
+        );
+        if (!card) return;
+        totalsByCard.set(card.id, (totalsByCard.get(card.id) ?? 0) + tx.amount);
+      });
+
+    return Array.from(totalsByCard.entries())
+      .map(([cardId, value], index) => {
+        const card = cards.find((c) => c.id === cardId)!;
         return {
-          month,
-          entradas: sumByType(monthTx, "entrada"),
-          saidas: sumByType(monthTx, "saida"),
+          name: card.name,
+          value,
+          color: CATEGORICAL[index % CATEGORICAL.length],
         };
-      }),
-    [periodMonths, transactions],
-  );
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [periodTransactions, cards]);
 
   const categoryBreakdown: CategoryBreakdownItem[] = useMemo(() => {
     const totalsByCategory = new Map<string, number>();
 
     periodTransactions
-      .filter((tx) => tx.type === "saida")
+      .filter((tx) => tx.type === "saida" && tx.currency === PRIMARY_CURRENCY)
       .forEach((tx) => {
         const key = tx.categoryId ?? "sem-categoria";
         totalsByCategory.set(key, (totalsByCategory.get(key) ?? 0) + tx.amount);
@@ -177,7 +211,7 @@ export default function DashboardPage() {
             Dashboard Financeiro de {userName}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {formatPeriodLabel(periodType, year, subPeriod)}
+            {formatPeriodLabel(periodType, year, subPeriod, customRange)}
           </p>
         </div>
 
@@ -189,6 +223,9 @@ export default function DashboardPage() {
           year={year}
           onYearChange={setYear}
           years={years}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
+          align="right"
         />
       </div>
 
@@ -198,6 +235,11 @@ export default function DashboardPage() {
           <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
             {formatCurrency(entradas)}
           </p>
+          {secondaryCurrencyTotals(entradasByCurrency).map(([currency, value]) => (
+            <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(value, currency)}
+            </p>
+          ))}
           <Variation current={entradas} previous={previousEntradas} higherIsGood />
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -205,6 +247,11 @@ export default function DashboardPage() {
           <p className="mt-1 text-2xl font-medium text-red-600 dark:text-red-400">
             {formatCurrency(saidas)}
           </p>
+          {secondaryCurrencyTotals(saidasByCurrency).map(([currency, value]) => (
+            <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(value, currency)}
+            </p>
+          ))}
           <Variation
             current={saidas}
             previous={previousSaidas}
@@ -222,26 +269,20 @@ export default function DashboardPage() {
           >
             {formatCurrency(saldo)}
           </p>
+          {secondaryCurrencies.map((currency) => {
+            const value =
+              (entradasByCurrency[currency] ?? 0) - (saidasByCurrency[currency] ?? 0);
+            return (
+              <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+                {formatCurrency(value, currency)}
+              </p>
+            );
+          })}
           <Variation current={saldo} previous={previousSaldo} higherIsGood />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-            Entradas x Saídas por mês
-          </h2>
-          {periodTransactions.length === 0 ? (
-            <EmptyState
-              message="Nenhuma transação neste período."
-              actionLabel="Adicionar transação"
-              actionHref="/transacoes"
-            />
-          ) : (
-            <MonthlyTrendChart data={trendData} onMonthClick={handleMonthClick} />
-          )}
-        </div>
-
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">
             Total comprometido: entradas x saídas
@@ -254,6 +295,21 @@ export default function DashboardPage() {
             centerLabel={formatCurrency(entradas + saidas)}
             centerSubLabel="Movimentado"
           />
+        </div>
+
+        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">
+            Gasto por cartão
+          </h2>
+          {cardBreakdown.length === 0 ? (
+            <EmptyState
+              message="Nenhum gasto em cartão de crédito neste período."
+              actionLabel="Adicionar transação"
+              actionHref="/transacoes"
+            />
+          ) : (
+            <CategoryBreakdownBars data={cardBreakdown} />
+          )}
         </div>
       </div>
 

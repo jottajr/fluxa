@@ -6,15 +6,17 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { exportToCSV, exportToPDF } from "@/lib/export";
 import { parseTransactionsCSV } from "@/lib/csv-import";
 import {
+  type DateRange,
   type PeriodType,
   defaultSubPeriodFor,
   formatPeriodLabel,
-  getMonthsInPeriod,
+  getPeriodRange,
 } from "@/lib/period";
 import { STATUS_LABELS } from "@/components/StatusBadge";
 import { Modal } from "@/components/Modal";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { getPaymentMethodLabel } from "@/lib/payment-methods";
+import { PRIMARY_CURRENCY } from "@/lib/currency";
 import type { Transaction, TransactionType } from "@/types";
 
 export default function ImportarExportarPage() {
@@ -28,6 +30,7 @@ export default function ImportarExportarPage() {
   const [periodType, setPeriodType] = useState<PeriodType>("mensal");
   const [year, setYear] = useState(currentYear);
   const [subPeriod, setSubPeriod] = useState(currentMonth);
+  const [customRange, setCustomRange] = useState<DateRange | null>(null);
 
   const importFileRef = useRef<HTMLInputElement>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -59,17 +62,17 @@ export default function ImportarExportarPage() {
     setSubPeriod(defaultSubPeriodFor(newType, currentMonth));
   }
 
-  const periodMonths = useMemo(
-    () => getMonthsInPeriod(periodType, year, subPeriod),
-    [periodType, year, subPeriod],
+  const periodRange = useMemo(
+    () => getPeriodRange(periodType, year, subPeriod, customRange),
+    [periodType, year, subPeriod, customRange],
   );
 
   const periodTransactions = useMemo(
     () =>
       transactions
-        .filter((tx) => periodMonths.includes(tx.date.slice(0, 7)))
+        .filter((tx) => tx.date >= periodRange.start && tx.date <= periodRange.end)
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [transactions, periodMonths],
+    [transactions, periodRange],
   );
 
   const totals = useMemo(() => {
@@ -107,7 +110,7 @@ export default function ImportarExportarPage() {
 
   function handleExportCSV() {
     exportToCSV(
-      `transacoes-${formatPeriodLabel(periodType, year, subPeriod).replace(/\s+/g, "-")}.csv`,
+      `transacoes-${formatPeriodLabel(periodType, year, subPeriod, customRange).replace(/\s+/g, "-")}.csv`,
       exportHeaders,
       buildExportRows(),
       buildSummaryRows(),
@@ -116,8 +119,8 @@ export default function ImportarExportarPage() {
 
   async function handleExportPDF() {
     await exportToPDF(
-      `transacoes-${formatPeriodLabel(periodType, year, subPeriod).replace(/\s+/g, "-")}.pdf`,
-      `Transações — ${formatPeriodLabel(periodType, year, subPeriod)}`,
+      `transacoes-${formatPeriodLabel(periodType, year, subPeriod, customRange).replace(/\s+/g, "-")}.pdf`,
+      `Transações — ${formatPeriodLabel(periodType, year, subPeriod, customRange)}`,
       exportHeaders,
       buildExportRows(),
       [
@@ -174,6 +177,7 @@ export default function ImportarExportarPage() {
       id: `tx-${crypto.randomUUID()}`,
       description: row.description,
       amount: row.amount,
+      currency: PRIMARY_CURRENCY,
       date: row.date,
       status: "pago",
       type: row.type,
@@ -213,6 +217,8 @@ export default function ImportarExportarPage() {
           year={year}
           onYearChange={setYear}
           years={years}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

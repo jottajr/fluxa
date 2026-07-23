@@ -6,6 +6,7 @@ import {
   CategoriasIcon,
   ConfiguracoesIcon,
   DashboardIcon,
+  ExtratoIcon,
   InvestimentosIcon,
   MetasIcon,
   PagamentosIcon,
@@ -16,6 +17,7 @@ import {
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", Icon: DashboardIcon },
   { href: "/transacoes", label: "Transações", Icon: TransacoesIcon },
+  { href: "/extrato", label: "Extrato", Icon: ExtratoIcon },
   { href: "/pagamentos", label: "Pagamentos", Icon: PagamentosIcon },
   { href: "/categorias", label: "Categorias", Icon: CategoriasIcon },
   { href: "/investimentos", label: "Investimentos", Icon: InvestimentosIcon },

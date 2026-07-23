@@ -21,6 +21,9 @@ function emptyForm() {
     dueDay: "",
     creditLimit: "",
     color: "#64748b",
+    hasMiles: false,
+    milesRatioAmount: "",
+    milesRatioMiles: "",
   };
 }
 
@@ -88,6 +91,9 @@ export default function PagamentosPage() {
       dueDay: card.dueDay ? String(card.dueDay) : "",
       creditLimit: card.creditLimit ? String(card.creditLimit) : "",
       color: card.color,
+      hasMiles: card.milesRatioAmount !== null && card.milesRatioMiles !== null,
+      milesRatioAmount: card.milesRatioAmount ? String(card.milesRatioAmount) : "",
+      milesRatioMiles: card.milesRatioMiles ? String(card.milesRatioMiles) : "",
     });
     setEditingId(card.id);
     setShowModal(true);
@@ -108,6 +114,14 @@ export default function PagamentosPage() {
           ? Number(form.creditLimit)
           : null,
       color: form.color,
+      milesRatioAmount:
+        form.type !== "debito" && form.hasMiles && form.milesRatioAmount
+          ? Number(form.milesRatioAmount)
+          : null,
+      milesRatioMiles:
+        form.type !== "debito" && form.hasMiles && form.milesRatioMiles
+          ? Number(form.milesRatioMiles)
+          : null,
     };
 
     if (editingId) {
@@ -274,6 +288,52 @@ export default function PagamentosPage() {
                     className={inputClass}
                     placeholder="0,00"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.hasMiles}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, hasMiles: e.target.checked }))
+                      }
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                    />
+                    Pontuação em milhas?
+                  </label>
+
+                  {form.hasMiles && (
+                    <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className={labelClass}>A cada R$</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={form.milesRatioAmount}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, milesRatioAmount: e.target.value }))
+                          }
+                          className={inputClass}
+                          placeholder="Ex: 1,00"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Ganho quantas milhas</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={form.milesRatioMiles}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, milesRatioMiles: e.target.value }))
+                          }
+                          className={inputClass}
+                          placeholder="Ex: 1,50"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}

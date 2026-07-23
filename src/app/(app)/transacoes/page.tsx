@@ -4,18 +4,28 @@ import { useMemo, useState } from "react";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { addMonthsToDate, formatCurrency, formatDate } from "@/lib/format";
 import {
+  type DateRange,
   type PeriodType,
   defaultSubPeriodFor,
   formatPeriodLabel,
-  getMonthsInPeriod,
+  getPeriodRange,
 } from "@/lib/period";
 import { StatusBadge, STATUS_LABELS } from "@/components/StatusBadge";
 import { Modal } from "@/components/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PeriodSelector } from "@/components/PeriodSelector";
+import { TransactionFiltersDrawer } from "@/components/TransactionFiltersDrawer";
 import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { EmptyState } from "@/components/EmptyState";
 import { getPaymentMethodLabel } from "@/lib/payment-methods";
-import type { Transaction, TransactionStatus, TransactionType } from "@/types";
+import {
+  CURRENCY_OPTIONS,
+  PRIMARY_CURRENCY,
+  secondaryCurrencyTotals,
+  sumByCurrency,
+} from "@/lib/currency";
+import type { Currency, Transaction, TransactionStatus, TransactionType } from "@/types";
 
 const STATUS_OPTIONS: TransactionStatus[] = [
   "pendente",
@@ -34,6 +44,7 @@ function emptyForm() {
   return {
     description: "",
     amount: "",
+    currency: PRIMARY_CURRENCY,
     date: new Date().toISOString().slice(0, 10),
     type: "saida" as TransactionType,
     status: "pendente" as TransactionStatus,
@@ -54,6 +65,7 @@ export default function TransacoesPage() {
     addTransactions,
     updateTransaction,
     deleteTransaction,
+    deleteTransactions,
   } = useFinanceData();
 
   const today = new Date();
@@ -63,6 +75,7 @@ export default function TransacoesPage() {
   const [periodType, setPeriodType] = useState<PeriodType>("mensal");
   const [year, setYear] = useState(currentYear);
   const [subPeriod, setSubPeriod] = useState(currentMonth);
+  const [customRange, setCustomRange] = useState<DateRange | null>(null);
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "todos">(
     "todos",
   );
@@ -71,6 +84,12 @@ export default function TransacoesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmState, setConfirmState] = useState<
+    | { type: "single"; id: string; description: string; installmentInfo?: string }
+    | { type: "bulk"; ids: string[] }
+    | null
+  >(null);
 
   const categoriesById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -88,14 +107,14 @@ export default function TransacoesPage() {
     setSubPeriod(defaultSubPeriodFor(newType, currentMonth));
   }
 
-  const periodMonths = useMemo(
-    () => getMonthsInPeriod(periodType, year, subPeriod),
-    [periodType, year, subPeriod],
+  const periodRange = useMemo(
+    () => getPeriodRange(periodType, year, subPeriod, customRange),
+    [periodType, year, subPeriod, customRange],
   );
 
   const filtered = useMemo(() => {
     return transactions
-      .filter((tx) => periodMonths.includes(tx.date.slice(0, 7)))
+      .filter((tx) => tx.date >= periodRange.start && tx.date <= periodRange.end)
       .filter((tx) => statusFilter === "todos" || tx.status === statusFilter)
       .filter((tx) => categoryFilter === "todas" || tx.categoryId === categoryFilter)
       .filter(
@@ -104,16 +123,33 @@ export default function TransacoesPage() {
           tx.paymentMethodId === paymentMethodFilter,
       )
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [transactions, periodMonths, statusFilter, categoryFilter, paymentMethodFilter]);
+  }, [transactions, periodRange, statusFilter, categoryFilter, paymentMethodFilter]);
 
   const totals = useMemo(() => {
-    const entradas = filtered
-      .filter((tx) => tx.type === "entrada")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-    const saidas = filtered
-      .filter((tx) => tx.type === "saida")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-    return { entradas, saidas, saldo: entradas - saidas };
+    const entradasByCurrency = sumByCurrency(
+      filtered.filter((tx) => tx.type === "entrada"),
+    );
+    const saidasByCurrency = sumByCurrency(
+      filtered.filter((tx) => tx.type === "saida"),
+    );
+    const entradasPrimary = entradasByCurrency[PRIMARY_CURRENCY] ?? 0;
+    const saidasPrimary = saidasByCurrency[PRIMARY_CURRENCY] ?? 0;
+
+    const secondaryCurrencies = Array.from(
+      new Set([
+        ...Object.keys(entradasByCurrency),
+        ...Object.keys(saidasByCurrency),
+      ].filter((c) => c !== PRIMARY_CURRENCY)),
+    ) as Currency[];
+
+    return {
+      entradasByCurrency,
+      saidasByCurrency,
+      entradasPrimary,
+      saidasPrimary,
+      saldoPrimary: entradasPrimary - saidasPrimary,
+      secondaryCurrencies,
+    };
   }, [filtered]);
 
   function openNewModal() {
@@ -132,6 +168,7 @@ export default function TransacoesPage() {
     setForm({
       description: tx.description,
       amount: String(tx.amount),
+      currency: tx.currency,
       date: tx.date,
       type: tx.type,
       status: tx.status,
@@ -145,14 +182,58 @@ export default function TransacoesPage() {
     setShowModal(true);
   }
 
-  async function handleDelete(id: string, description: string, installmentInfo?: string) {
-    const message = installmentInfo
-      ? `Excluir a parcela ${installmentInfo} de "${description}"?`
-      : `Excluir a transação "${description}"?`;
-    if (window.confirm(message)) {
-      await deleteTransaction(id);
-      closeModal();
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === filtered.length
+        ? new Set()
+        : new Set(filtered.map((tx) => tx.id)),
+    );
+  }
+
+  function requestDelete(tx: Transaction) {
+    setConfirmState({
+      type: "single",
+      id: tx.id,
+      description: tx.description,
+      installmentInfo: tx.totalInstallments
+        ? `${tx.installmentNumber}/${tx.totalInstallments}`
+        : undefined,
+    });
+  }
+
+  function requestBulkDelete() {
+    if (selectedIds.size === 0) return;
+    setConfirmState({ type: "bulk", ids: Array.from(selectedIds) });
+  }
+
+  async function confirmDeletion() {
+    if (!confirmState) return;
+    if (confirmState.type === "single") {
+      await deleteTransaction(confirmState.id);
+      if (editingId === confirmState.id) closeModal();
+      setSelectedIds((prev) => {
+        if (!prev.has(confirmState.id)) return prev;
+        const next = new Set(prev);
+        next.delete(confirmState.id);
+        return next;
+      });
+    } else {
+      await deleteTransactions(confirmState.ids);
+      setSelectedIds(new Set());
     }
+    setConfirmState(null);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -163,6 +244,7 @@ export default function TransacoesPage() {
       await updateTransaction(editingId, {
         description: form.description,
         amount: Number(form.amount),
+        currency: form.currency,
         date: form.date,
         type: form.type,
         status: form.status,
@@ -192,6 +274,7 @@ export default function TransacoesPage() {
             id: `tx-${crypto.randomUUID()}`,
             description: form.description,
             amount: isLast ? baseInstallment + roundingRemainder : baseInstallment,
+            currency: form.currency,
             date: addMonthsToDate(form.date, i),
             type: form.type,
             status: i === 0 ? form.status : ("agendado" as TransactionStatus),
@@ -213,6 +296,7 @@ export default function TransacoesPage() {
           id: `tx-${crypto.randomUUID()}`,
           description: form.description,
           amount: totalAmount,
+          currency: form.currency,
           date: form.date,
           type: form.type,
           status: form.status,
@@ -239,18 +323,28 @@ export default function TransacoesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
-            Transações - {formatPeriodLabel(periodType, year, subPeriod)}
+            Transações - {formatPeriodLabel(periodType, year, subPeriod, customRange)}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Visualize e lance suas movimentações financeiras.
           </p>
         </div>
-        <button
-          onClick={openNewModal}
-          className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
-        >
-          + Nova transação
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={requestBulkDelete}
+              className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              Excluir selecionadas ({selectedIds.size})
+            </button>
+          )}
+          <button
+            onClick={openNewModal}
+            className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+          >
+            + Nova transação
+          </button>
+        </div>
       </div>
 
       <Modal
@@ -288,6 +382,23 @@ export default function TransacoesPage() {
               className={inputClass}
               placeholder="0,00"
             />
+          </div>
+
+          <div>
+            <label className={labelClass}>Moeda</label>
+            <select
+              value={form.currency}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, currency: e.target.value as Currency }))
+              }
+              className={inputClass}
+            >
+              {CURRENCY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -481,15 +592,7 @@ export default function TransacoesPage() {
             {editingId && editingTx && (
               <button
                 type="button"
-                onClick={() =>
-                  handleDelete(
-                    editingTx.id,
-                    editingTx.description,
-                    editingTx.totalInstallments
-                      ? `${editingTx.installmentNumber}/${editingTx.totalInstallments}`
-                      : undefined,
-                  )
-                }
+                onClick={() => requestDelete(editingTx)}
                 className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
               >
                 Excluir transação
@@ -503,30 +606,50 @@ export default function TransacoesPage() {
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">Entradas</p>
           <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(totals.entradas)}
+            {formatCurrency(totals.entradasPrimary)}
           </p>
+          {secondaryCurrencyTotals(totals.entradasByCurrency).map(([currency, value]) => (
+            <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(value, currency)}
+            </p>
+          ))}
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">Saídas</p>
           <p className="mt-1 text-2xl font-medium text-red-600 dark:text-red-400">
-            {formatCurrency(totals.saidas)}
+            {formatCurrency(totals.saidasPrimary)}
           </p>
+          {secondaryCurrencyTotals(totals.saidasByCurrency).map(([currency, value]) => (
+            <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(value, currency)}
+            </p>
+          ))}
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">Saldo</p>
           <p
             className={`mt-1 text-2xl font-medium ${
-              totals.saldo >= 0
+              totals.saldoPrimary >= 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-red-600 dark:text-red-400"
             }`}
           >
-            {formatCurrency(totals.saldo)}
+            {formatCurrency(totals.saldoPrimary)}
           </p>
+          {totals.secondaryCurrencies.map((currency) => {
+            const value =
+              (totals.entradasByCurrency[currency] ?? 0) -
+              (totals.saidasByCurrency[currency] ?? 0);
+            return (
+              <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+                {formatCurrency(value, currency)}
+              </p>
+            );
+          })}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <PeriodSelector
           periodType={periodType}
           onPeriodTypeChange={handlePeriodTypeChange}
@@ -535,75 +658,36 @@ export default function TransacoesPage() {
           year={year}
           onYearChange={setYear}
           years={years}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
         />
 
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 dark:text-slate-400">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as TransactionStatus | "todos")
-              }
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            >
-              <option value="todos">Todos</option>
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 dark:text-slate-400">Categoria:</span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            >
-              <option value="todas">Todas</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.icon} {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 dark:text-slate-400">Forma de pagamento:</span>
-            <select
-              value={paymentMethodFilter}
-              onChange={(e) => setPaymentMethodFilter(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            >
-              <option value="todos">Todas</option>
-              <optgroup label="Formas de pagamento">
-                {genericPaymentMethods.map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.icon} {method.name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Cartões">
-                {cards.map((card) => (
-                  <option key={card.id} value={card.id}>
-                    {card.name}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </div>
-        </div>
+        <TransactionFiltersDrawer
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          categories={categories}
+          paymentMethodFilter={paymentMethodFilter}
+          onPaymentMethodFilterChange={setPaymentMethodFilter}
+          cards={cards}
+          genericPaymentMethods={genericPaymentMethods}
+        />
       </div>
 
       <div className="tech-card overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 dark:border-slate-800 dark:bg-slate-900">
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-950">
             <tr>
-              <th className="w-10 px-4 py-3"></th>
+              <th className="w-10 px-4 py-3 text-center">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                  onChange={toggleSelectAll}
+                  aria-label="Selecionar todas"
+                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                />
+              </th>
               <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Data
               </th>
@@ -622,19 +706,20 @@ export default function TransacoesPage() {
               <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Status
               </th>
+              <th className="w-20 px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filtered.map((tx) => (
               <tr key={tx.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => startEdit(tx)}
-                    aria-label="Editar transação"
-                    className="text-slate-300 hover:text-slate-700 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-200 dark:group-hover:text-slate-400"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(tx.id)}
+                    onChange={() => toggleSelected(tx.id)}
+                    aria-label="Selecionar transação"
+                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                  />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-center text-sm text-slate-600 dark:text-slate-400">
                   {formatDate(tx.date)}
@@ -668,16 +753,34 @@ export default function TransacoesPage() {
                   }`}
                 >
                   {tx.type === "entrada" ? "+" : "-"}
-                  {formatCurrency(tx.amount)}
+                  {formatCurrency(tx.amount, tx.currency)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-center">
                   <StatusBadge status={tx.status} />
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => startEdit(tx)}
+                      aria-label="Editar transação"
+                      className="text-slate-300 hover:text-slate-700 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-200 dark:group-hover:text-slate-400"
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => requestDelete(tx)}
+                      aria-label="Excluir transação"
+                      className="text-slate-300 hover:text-red-600 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-red-400 dark:group-hover:text-slate-400"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <EmptyState
                     message="Nenhuma transação encontrada neste período."
                     actionLabel="Nova transação"
@@ -689,6 +792,26 @@ export default function TransacoesPage() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={
+          confirmState?.type === "bulk"
+            ? "Excluir transações selecionadas"
+            : "Excluir transação"
+        }
+        message={
+          confirmState?.type === "bulk"
+            ? `Tem certeza que deseja excluir ${confirmState.ids.length} ${confirmState.ids.length === 1 ? "transação selecionada" : "transações selecionadas"}? Essa ação não pode ser desfeita.`
+            : confirmState?.type === "single"
+              ? confirmState.installmentInfo
+                ? `Excluir a parcela ${confirmState.installmentInfo} de "${confirmState.description}"? Essa ação não pode ser desfeita.`
+                : `Excluir a transação "${confirmState.description}"? Essa ação não pode ser desfeita.`
+              : ""
+        }
+        onConfirm={confirmDeletion}
+        onCancel={() => setConfirmState(null)}
+      />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 export type ProfileType = "pessoal" | "empresarial";
 
+export type Currency = "BRL" | "USD" | "EUR";
+
 export interface Profile {
   id: string;
   name: string;
@@ -23,6 +25,8 @@ export interface Card {
   dueDay: number | null;
   creditLimit: number | null;
   color: string;
+  milesRatioAmount: number | null;
+  milesRatioMiles: number | null;
 }
 
 export interface Category {
@@ -43,6 +47,7 @@ export interface InvestmentReturn {
   id: string;
   date: string;
   amount: number;
+  currency: Currency;
   note: string;
 }
 
@@ -50,6 +55,7 @@ export interface Transaction {
   id: string;
   description: string;
   amount: number;
+  currency: Currency;
   date: string;
   status: TransactionStatus;
   type: TransactionType;

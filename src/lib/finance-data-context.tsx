@@ -15,6 +15,7 @@ import type {
   Card,
   CardType,
   Category,
+  Currency,
   InvestmentReturn,
   Transaction,
   TransactionStatus,
@@ -43,6 +44,8 @@ interface PaymentMethodRow {
   due_day: number | null;
   credit_limit: number | null;
   color: string | null;
+  miles_ratio_amount: number | null;
+  miles_ratio_miles: number | null;
 }
 
 function rowToCard(row: PaymentMethodRow): Card {
@@ -55,6 +58,8 @@ function rowToCard(row: PaymentMethodRow): Card {
     dueDay: row.due_day,
     creditLimit: row.credit_limit,
     color: row.color ?? "#64748b",
+    milesRatioAmount: row.miles_ratio_amount,
+    milesRatioMiles: row.miles_ratio_miles,
   };
 }
 
@@ -70,6 +75,7 @@ interface TransactionRow {
   id: string;
   description: string;
   amount: number;
+  currency: Currency;
   date: string;
   status: TransactionStatus;
   type: TransactionType;
@@ -87,6 +93,7 @@ function rowToTransaction(row: TransactionRow): Transaction {
     id: row.id,
     description: row.description,
     amount: Number(row.amount),
+    currency: row.currency,
     date: row.date,
     status: row.status,
     type: row.type,
@@ -104,6 +111,7 @@ interface InvestmentReturnRow {
   id: string;
   date: string;
   amount: number;
+  currency: Currency;
   note: string | null;
 }
 
@@ -112,6 +120,7 @@ function rowToInvestmentReturn(row: InvestmentReturnRow): InvestmentReturn {
     id: row.id,
     date: row.date,
     amount: Number(row.amount),
+    currency: row.currency,
     note: row.note ?? "",
   };
 }
@@ -144,6 +153,7 @@ interface FinanceDataContextValue {
     updates: Partial<Omit<Transaction, "id">>,
   ) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  deleteTransactions: (ids: string[]) => Promise<void>;
   addCard: (card: Card) => Promise<void>;
   updateCard: (id: string, updates: Partial<Omit<Card, "id">>) => Promise<void>;
   addCategory: (category: Category) => Promise<void>;
@@ -197,20 +207,20 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
           supabase
             .from("payment_methods")
             .select(
-              "id, kind, name, bank, card_type, closing_day, due_day, credit_limit, color",
+              "id, kind, name, bank, card_type, closing_day, due_day, credit_limit, color, miles_ratio_amount, miles_ratio_miles",
             )
             .eq("profile_id", activeProfileId)
             .order("created_at", { ascending: true }),
           supabase
             .from("transactions")
             .select(
-              "id, description, amount, date, status, type, payment_method_id, category_id, recurring, note, installment_group_id, installment_number, total_installments",
+              "id, description, amount, currency, date, status, type, payment_method_id, category_id, recurring, note, installment_group_id, installment_number, total_installments",
             )
             .eq("profile_id", activeProfileId)
             .order("date", { ascending: false }),
           supabase
             .from("investment_returns")
-            .select("id, date, amount, note")
+            .select("id, date, amount, currency, note")
             .eq("profile_id", activeProfileId)
             .order("date", { ascending: false }),
           supabase
@@ -277,6 +287,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
           profile_id: activeProfileId,
           description: tx.description,
           amount: tx.amount,
+          currency: tx.currency,
           date: tx.date,
           status: tx.status,
           type: tx.type,
@@ -290,7 +301,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         })),
       )
       .select(
-        "id, description, amount, date, status, type, payment_method_id, category_id, recurring, note, installment_group_id, installment_number, total_installments",
+        "id, description, amount, currency, date, status, type, payment_method_id, category_id, recurring, note, installment_group_id, installment_number, total_installments",
       );
 
     if (!error && data) {
@@ -311,6 +322,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
       .update({
         ...(updates.description !== undefined && { description: updates.description }),
         ...(updates.amount !== undefined && { amount: updates.amount }),
+        ...(updates.currency !== undefined && { currency: updates.currency }),
         ...(updates.date !== undefined && { date: updates.date }),
         ...(updates.status !== undefined && { status: updates.status }),
         ...(updates.type !== undefined && { type: updates.type }),
@@ -338,6 +350,16 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function deleteTransactions(ids: string[]) {
+    if (ids.length === 0) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("transactions").delete().in("id", ids);
+    if (!error) {
+      const idSet = new Set(ids);
+      setTransactions((prev) => prev.filter((tx) => !idSet.has(tx.id)));
+    }
+  }
+
   async function addCard(card: Card) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -352,6 +374,8 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         due_day: card.dueDay,
         credit_limit: card.creditLimit,
         color: card.color,
+        miles_ratio_amount: card.milesRatioAmount,
+        miles_ratio_miles: card.milesRatioMiles,
       })
       .select(
         "id, kind, name, bank, card_type, closing_day, due_day, credit_limit, color",
@@ -375,6 +399,12 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         ...(updates.dueDay !== undefined && { due_day: updates.dueDay }),
         ...(updates.creditLimit !== undefined && { credit_limit: updates.creditLimit }),
         ...(updates.color !== undefined && { color: updates.color }),
+        ...(updates.milesRatioAmount !== undefined && {
+          miles_ratio_amount: updates.milesRatioAmount,
+        }),
+        ...(updates.milesRatioMiles !== undefined && {
+          miles_ratio_miles: updates.milesRatioMiles,
+        }),
       })
       .eq("id", id);
 
@@ -464,9 +494,10 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         profile_id: activeProfileId,
         date: entry.date,
         amount: entry.amount,
+        currency: entry.currency,
         note: entry.note || null,
       })
-      .select("id, date, amount, note")
+      .select("id, date, amount, currency, note")
       .single();
 
     if (!error && data) {
@@ -487,6 +518,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
       .update({
         ...(updates.date !== undefined && { date: updates.date }),
         ...(updates.amount !== undefined && { amount: updates.amount }),
+        ...(updates.currency !== undefined && { currency: updates.currency }),
         ...(updates.note !== undefined && { note: updates.note || null }),
       })
       .eq("id", id);
@@ -571,6 +603,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         addTransactions,
         updateTransaction,
         deleteTransaction,
+        deleteTransactions,
         addCard,
         updateCard,
         addCategory,

@@ -44,6 +44,20 @@ export function TransacoesIcon({ className }: { className?: string }) {
   );
 }
 
+export function ExtratoIcon({ className }: { className?: string }) {
+  return (
+    <IconBase className={className}>
+      <path
+        d="M5 3H15V17L12.5 15.5L10 17L7.5 15.5L5 17V3Z"
+        {...strokeProps}
+      />
+      <path d="M7.5 7H12.5" {...strokeProps} />
+      <path d="M7.5 10H12.5" {...strokeProps} />
+      <path d="M7.5 13H10.5" {...strokeProps} />
+    </IconBase>
+  );
+}
+
 export function PagamentosIcon({ className }: { className?: string }) {
   return (
     <IconBase className={className}>

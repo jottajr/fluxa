@@ -6,7 +6,13 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { Modal } from "@/components/Modal";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { getPaymentMethodLabel } from "@/lib/payment-methods";
-import type { InvestmentReturn } from "@/types";
+import {
+  CURRENCY_OPTIONS,
+  PRIMARY_CURRENCY,
+  secondaryCurrencyTotals,
+  sumByCurrency,
+} from "@/lib/currency";
+import type { Currency, InvestmentReturn } from "@/types";
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
@@ -16,6 +22,7 @@ function emptyForm() {
   return {
     date: new Date().toISOString().slice(0, 10),
     amount: "",
+    currency: PRIMARY_CURRENCY,
     note: "",
   };
 }
@@ -45,9 +52,31 @@ export default function InvestimentosPage() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [transactions, investmentCategory]);
 
-  const totalContributed = contributions.reduce((sum, tx) => sum + tx.amount, 0);
-  const totalReturns = investmentReturns.reduce((sum, r) => sum + r.amount, 0);
+  const contributedByCurrency = useMemo(
+    () => sumByCurrency(contributions),
+    [contributions],
+  );
+  const returnsByCurrency = useMemo(
+    () => sumByCurrency(investmentReturns),
+    [investmentReturns],
+  );
+
+  const totalContributed = contributedByCurrency[PRIMARY_CURRENCY] ?? 0;
+  const totalReturns = returnsByCurrency[PRIMARY_CURRENCY] ?? 0;
   const totalEquity = totalContributed + totalReturns;
+
+  const secondaryCurrencies = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...Object.keys(contributedByCurrency),
+            ...Object.keys(returnsByCurrency),
+          ].filter((c) => c !== PRIMARY_CURRENCY),
+        ),
+      ) as Currency[],
+    [contributedByCurrency, returnsByCurrency],
+  );
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -69,6 +98,7 @@ export default function InvestimentosPage() {
     setForm({
       date: entry.date,
       amount: String(entry.amount),
+      currency: entry.currency,
       note: entry.note,
     });
     setEditingId(entry.id);
@@ -90,6 +120,7 @@ export default function InvestimentosPage() {
       await updateInvestmentReturn(editingId, {
         date: form.date,
         amount: Number(form.amount),
+        currency: form.currency,
         note: form.note,
       });
     } else {
@@ -97,6 +128,7 @@ export default function InvestimentosPage() {
         id: `ret-${crypto.randomUUID()}`,
         date: form.date,
         amount: Number(form.amount),
+        currency: form.currency,
         note: form.note,
       });
     }
@@ -129,6 +161,11 @@ export default function InvestimentosPage() {
           <p className="mt-1 text-2xl font-medium text-slate-900 dark:text-slate-100">
             {formatCurrency(totalContributed)}
           </p>
+          {secondaryCurrencyTotals(contributedByCurrency).map(([currency, value]) => (
+            <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(value, currency)}
+            </p>
+          ))}
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -137,6 +174,11 @@ export default function InvestimentosPage() {
           <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
             {formatCurrency(totalReturns)}
           </p>
+          {secondaryCurrencyTotals(returnsByCurrency).map(([currency, value]) => (
+            <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(value, currency)}
+            </p>
+          ))}
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -145,6 +187,15 @@ export default function InvestimentosPage() {
           <p className="mt-1 text-2xl font-medium text-slate-900 dark:text-slate-100">
             {formatCurrency(totalEquity)}
           </p>
+          {secondaryCurrencies.map((currency) => {
+            const value =
+              (contributedByCurrency[currency] ?? 0) + (returnsByCurrency[currency] ?? 0);
+            return (
+              <p key={currency} className="text-xs text-slate-400 dark:text-slate-500">
+                {formatCurrency(value, currency)}
+              </p>
+            );
+          })}
         </div>
       </div>
 
@@ -180,6 +231,22 @@ export default function InvestimentosPage() {
                 className={inputClass}
                 placeholder="0,00"
               />
+            </div>
+            <div>
+              <label className={labelClass}>Moeda</label>
+              <select
+                value={form.currency}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, currency: e.target.value as Currency }))
+                }
+                className={inputClass}
+              >
+                {CURRENCY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelClass}>Data</label>
@@ -263,7 +330,7 @@ export default function InvestimentosPage() {
                     {entry.note || "—"}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                    +{formatCurrency(entry.amount)}
+                    +{formatCurrency(entry.amount, entry.currency)}
                   </td>
                 </tr>
               ))}
@@ -319,7 +386,7 @@ export default function InvestimentosPage() {
                     {getPaymentMethodLabel(tx.paymentMethodId, cards, genericPaymentMethods)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(tx.amount)}
+                    {formatCurrency(tx.amount, tx.currency)}
                   </td>
                 </tr>
               ))}
