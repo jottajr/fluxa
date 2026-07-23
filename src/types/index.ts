@@ -51,6 +51,22 @@ export interface InvestmentReturn {
   note: string;
 }
 
+export type InvestmentCategory = "renda_fixa" | "renda_variavel" | "outro";
+
+export type InvestmentRateUnit = "mensal" | "anual";
+
+export interface InvestmentPosition {
+  id: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  date: string;
+  category: InvestmentCategory;
+  rateValue: number | null;
+  rateUnit: InvestmentRateUnit | null;
+  note: string;
+}
+
 export interface Transaction {
   id: string;
   description: string;

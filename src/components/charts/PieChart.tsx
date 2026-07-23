@@ -1,4 +1,6 @@
 import { formatCurrency } from "@/lib/format";
+import { PRIMARY_CURRENCY } from "@/lib/currency";
+import type { Currency } from "@/types";
 
 export interface PieSlice {
   name: string;
@@ -14,10 +16,12 @@ export function PieChart({
   data,
   centerLabel,
   centerSubLabel,
+  currency = PRIMARY_CURRENCY,
 }: {
   data: PieSlice[];
   centerLabel?: string;
   centerSubLabel?: string;
+  currency?: Currency;
 }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   let cumulativeFraction = 0;
@@ -83,7 +87,7 @@ export function PieChart({
               <span className="truncate">{slice.name}</span>
             </span>
             <span className="shrink-0 whitespace-nowrap font-medium text-slate-900 dark:text-slate-100">
-              {formatCurrency(slice.value)}
+              {formatCurrency(slice.value, currency)}
               {total > 0 && (
                 <span className="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">
                   ({Math.round((slice.value / total) * 100)}%)

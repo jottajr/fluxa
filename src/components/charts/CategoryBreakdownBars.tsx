@@ -1,5 +1,7 @@
 import { formatCurrency } from "@/lib/format";
+import { PRIMARY_CURRENCY } from "@/lib/currency";
 import { EmptyState } from "@/components/EmptyState";
+import type { Currency } from "@/types";
 
 export interface CategoryBreakdownItem {
   name: string;
@@ -9,8 +11,10 @@ export interface CategoryBreakdownItem {
 
 export function CategoryBreakdownBars({
   data,
+  currency = PRIMARY_CURRENCY,
 }: {
   data: CategoryBreakdownItem[];
+  currency?: Currency;
 }) {
   const max = Math.max(...data.map((d) => d.value), 1);
 
@@ -41,7 +45,7 @@ export function CategoryBreakdownBars({
             />
           </div>
           <span className="w-24 shrink-0 text-right text-sm font-medium text-slate-900 dark:text-slate-100">
-            {formatCurrency(d.value)}
+            {formatCurrency(d.value, currency)}
           </span>
         </div>
       ))}

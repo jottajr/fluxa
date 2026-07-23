@@ -16,6 +16,9 @@ import type {
   CardType,
   Category,
   Currency,
+  InvestmentCategory,
+  InvestmentPosition,
+  InvestmentRateUnit,
   InvestmentReturn,
   Transaction,
   TransactionStatus,
@@ -125,6 +128,32 @@ function rowToInvestmentReturn(row: InvestmentReturnRow): InvestmentReturn {
   };
 }
 
+interface InvestmentPositionRow {
+  id: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  contribution_date: string;
+  category: InvestmentCategory;
+  rate_value: number | null;
+  rate_unit: InvestmentRateUnit | null;
+  note: string | null;
+}
+
+function rowToInvestmentPosition(row: InvestmentPositionRow): InvestmentPosition {
+  return {
+    id: row.id,
+    description: row.description,
+    amount: Number(row.amount),
+    currency: row.currency,
+    date: row.contribution_date,
+    category: row.category,
+    rateValue: row.rate_value !== null ? Number(row.rate_value) : null,
+    rateUnit: row.rate_unit,
+    note: row.note ?? "",
+  };
+}
+
 interface BudgetGoalRow {
   id: string;
   category_id: string | null;
@@ -168,6 +197,13 @@ interface FinanceDataContextValue {
     updates: Partial<Omit<InvestmentReturn, "id">>,
   ) => Promise<void>;
   deleteInvestmentReturn: (id: string) => Promise<void>;
+  investmentPositions: InvestmentPosition[];
+  addInvestmentPosition: (position: InvestmentPosition) => Promise<void>;
+  updateInvestmentPosition: (
+    id: string,
+    updates: Partial<Omit<InvestmentPosition, "id">>,
+  ) => Promise<void>;
+  deleteInvestmentPosition: (id: string) => Promise<void>;
   budgetGoals: BudgetGoal[];
   addBudgetGoal: (goal: BudgetGoal) => Promise<void>;
   updateBudgetGoal: (
@@ -188,6 +224,9 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
   >([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [investmentReturns, setInvestmentReturns] = useState<InvestmentReturn[]>([]);
+  const [investmentPositions, setInvestmentPositions] = useState<
+    InvestmentPosition[]
+  >([]);
   const [budgetGoals, setBudgetGoals] = useState<BudgetGoal[]>([]);
 
   useEffect(() => {
@@ -197,8 +236,14 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
       if (!activeProfileId) return;
       const supabase = createClient();
 
-      const [categoriesRes, paymentMethodsRes, transactionsRes, investmentReturnsRes, budgetGoalsRes] =
-        await Promise.all([
+      const [
+        categoriesRes,
+        paymentMethodsRes,
+        transactionsRes,
+        investmentReturnsRes,
+        investmentPositionsRes,
+        budgetGoalsRes,
+      ] = await Promise.all([
           supabase
             .from("categories")
             .select("id, name, icon, parent_id")
@@ -223,6 +268,13 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
             .select("id, date, amount, currency, note")
             .eq("profile_id", activeProfileId)
             .order("date", { ascending: false }),
+          supabase
+            .from("investment_positions")
+            .select(
+              "id, description, amount, currency, contribution_date, category, rate_value, rate_unit, note",
+            )
+            .eq("profile_id", activeProfileId)
+            .order("contribution_date", { ascending: false }),
           supabase
             .from("budget_goals")
             .select("id, category_id, payment_method_id, monthly_limit")
@@ -261,6 +313,14 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         setInvestmentReturns(
           (investmentReturnsRes.data as InvestmentReturnRow[]).map(
             rowToInvestmentReturn,
+          ),
+        );
+      }
+
+      if (!investmentPositionsRes.error && investmentPositionsRes.data) {
+        setInvestmentPositions(
+          (investmentPositionsRes.data as InvestmentPositionRow[]).map(
+            rowToInvestmentPosition,
           ),
         );
       }
@@ -541,6 +601,73 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function addInvestmentPosition(position: InvestmentPosition) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("investment_positions")
+      .insert({
+        profile_id: activeProfileId,
+        description: position.description,
+        amount: position.amount,
+        currency: position.currency,
+        contribution_date: position.date,
+        category: position.category,
+        rate_value: position.rateValue,
+        rate_unit: position.rateUnit,
+        note: position.note || null,
+      })
+      .select(
+        "id, description, amount, currency, contribution_date, category, rate_value, rate_unit, note",
+      )
+      .single();
+
+    if (!error && data) {
+      setInvestmentPositions((prev) => [
+        rowToInvestmentPosition(data as InvestmentPositionRow),
+        ...prev,
+      ]);
+    }
+  }
+
+  async function updateInvestmentPosition(
+    id: string,
+    updates: Partial<Omit<InvestmentPosition, "id">>,
+  ) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("investment_positions")
+      .update({
+        ...(updates.description !== undefined && {
+          description: updates.description,
+        }),
+        ...(updates.amount !== undefined && { amount: updates.amount }),
+        ...(updates.currency !== undefined && { currency: updates.currency }),
+        ...(updates.date !== undefined && { contribution_date: updates.date }),
+        ...(updates.category !== undefined && { category: updates.category }),
+        ...(updates.rateValue !== undefined && { rate_value: updates.rateValue }),
+        ...(updates.rateUnit !== undefined && { rate_unit: updates.rateUnit }),
+        ...(updates.note !== undefined && { note: updates.note || null }),
+      })
+      .eq("id", id);
+
+    if (!error) {
+      setInvestmentPositions((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      );
+    }
+  }
+
+  async function deleteInvestmentPosition(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("investment_positions")
+      .delete()
+      .eq("id", id);
+    if (!error) {
+      setInvestmentPositions((prev) => prev.filter((p) => p.id !== id));
+    }
+  }
+
   async function addBudgetGoal(goal: BudgetGoal) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -612,6 +739,10 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         addInvestmentReturn,
         updateInvestmentReturn,
         deleteInvestmentReturn,
+        investmentPositions,
+        addInvestmentPosition,
+        updateInvestmentPosition,
+        deleteInvestmentPosition,
         budgetGoals,
         addBudgetGoal,
         updateBudgetGoal,
