@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Modal } from "@/components/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import {
   CURRENCY_OPTIONS,
@@ -29,6 +31,10 @@ import type {
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const labelClass = "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300";
+const rowActionIconClass =
+  "text-slate-300 hover:text-slate-700 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-200 dark:group-hover:text-slate-400";
+const rowDeleteIconClass =
+  "text-slate-300 hover:text-red-600 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-red-400 dark:group-hover:text-slate-400";
 
 const CATEGORY_LABELS: Record<InvestmentCategory, string> = {
   renda_fixa: "Renda fixa",
@@ -53,7 +59,7 @@ function emptyReturnForm() {
 }
 
 function emptyPositionForm() {
-  const defaultModel = INVESTMENT_MODEL_PRESETS[1];
+  const defaultModel = INVESTMENT_MODEL_PRESETS[0];
   return {
     description: "",
     amount: "",
@@ -73,10 +79,12 @@ export default function InvestimentosPage() {
     addInvestmentReturn,
     updateInvestmentReturn,
     deleteInvestmentReturn,
+    deleteInvestmentReturns,
     investmentPositions,
     addInvestmentPosition,
     updateInvestmentPosition,
     deleteInvestmentPosition,
+    deleteInvestmentPositions,
   } = useFinanceData();
 
   const contributedByCurrency = useMemo(
@@ -96,7 +104,6 @@ export default function InvestimentosPage() {
 
   const totalContributed = contributedByCurrency[selectedCurrency] ?? 0;
   const totalReturns = returnsByCurrency[selectedCurrency] ?? 0;
-  const totalEquity = totalContributed + totalReturns;
 
   const projectablePositions = useMemo(
     () =>
@@ -110,10 +117,19 @@ export default function InvestimentosPage() {
     [projectablePositions],
   );
 
+  const totalRendimento = totalReturns + projectedGainTotal;
+  const totalEquity = totalContributed + totalRendimento;
+
   // ---- rendimentos (lançamento manual) ----
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [editingReturnId, setEditingReturnId] = useState<string | null>(null);
   const [returnForm, setReturnForm] = useState(emptyReturnForm());
+  const [selectedReturnIds, setSelectedReturnIds] = useState<Set<string>>(new Set());
+  const [confirmReturnState, setConfirmReturnState] = useState<
+    | { type: "single"; id: string; label: string }
+    | { type: "bulk"; ids: string[] }
+    | null
+  >(null);
 
   function openNewReturnModal() {
     setReturnForm(emptyReturnForm());
@@ -138,12 +154,52 @@ export default function InvestimentosPage() {
     setShowReturnModal(true);
   }
 
-  async function handleDeleteReturn(entry: InvestmentReturn) {
-    const label = entry.note || formatCurrency(entry.amount, entry.currency);
-    if (window.confirm(`Excluir o rendimento "${label}"?`)) {
-      await deleteInvestmentReturn(entry.id);
-      if (editingReturnId === entry.id) closeReturnModal();
+  function toggleReturnSelected(id: string) {
+    setSelectedReturnIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllReturns() {
+    setSelectedReturnIds((prev) =>
+      prev.size === investmentReturns.length
+        ? new Set()
+        : new Set(investmentReturns.map((r) => r.id)),
+    );
+  }
+
+  function requestDeleteReturn(entry: InvestmentReturn) {
+    setConfirmReturnState({
+      type: "single",
+      id: entry.id,
+      label: entry.note || formatCurrency(entry.amount, entry.currency),
+    });
+  }
+
+  function requestBulkDeleteReturns() {
+    if (selectedReturnIds.size === 0) return;
+    setConfirmReturnState({ type: "bulk", ids: Array.from(selectedReturnIds) });
+  }
+
+  async function confirmReturnDeletion() {
+    if (!confirmReturnState) return;
+    if (confirmReturnState.type === "single") {
+      await deleteInvestmentReturn(confirmReturnState.id);
+      if (editingReturnId === confirmReturnState.id) closeReturnModal();
+      setSelectedReturnIds((prev) => {
+        if (!prev.has(confirmReturnState.id)) return prev;
+        const next = new Set(prev);
+        next.delete(confirmReturnState.id);
+        return next;
+      });
+    } else {
+      await deleteInvestmentReturns(confirmReturnState.ids);
+      setSelectedReturnIds(new Set());
     }
+    setConfirmReturnState(null);
   }
 
   async function handleSubmitReturn(event: React.FormEvent) {
@@ -173,6 +229,14 @@ export default function InvestimentosPage() {
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [editingPositionId, setEditingPositionId] = useState<string | null>(null);
   const [positionForm, setPositionForm] = useState(emptyPositionForm());
+  const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [confirmPositionState, setConfirmPositionState] = useState<
+    | { type: "single"; id: string; description: string }
+    | { type: "bulk"; ids: string[] }
+    | null
+  >(null);
 
   function openNewPositionModal() {
     setPositionForm(emptyPositionForm());
@@ -189,7 +253,7 @@ export default function InvestimentosPage() {
   function startEditPosition(position: InvestmentPosition) {
     const preset =
       INVESTMENT_MODEL_PRESETS.find((m) => m.category === position.category) ??
-      INVESTMENT_MODEL_PRESETS[3];
+      INVESTMENT_MODEL_PRESETS[INVESTMENT_MODEL_PRESETS.length - 1];
     setPositionForm({
       description: position.description,
       amount: String(position.amount),
@@ -205,11 +269,52 @@ export default function InvestimentosPage() {
     setShowPositionModal(true);
   }
 
-  async function handleDeletePosition(position: InvestmentPosition) {
-    if (window.confirm(`Excluir o aporte "${position.description}"?`)) {
-      await deleteInvestmentPosition(position.id);
-      if (editingPositionId === position.id) closePositionModal();
+  function toggleSelectAllPositions() {
+    setSelectedPositionIds((prev) =>
+      prev.size === investmentPositions.length
+        ? new Set()
+        : new Set(investmentPositions.map((p) => p.id)),
+    );
+  }
+
+  function togglePositionSelected(id: string) {
+    setSelectedPositionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function requestDeletePosition(position: InvestmentPosition) {
+    setConfirmPositionState({
+      type: "single",
+      id: position.id,
+      description: position.description,
+    });
+  }
+
+  function requestBulkDeletePositions() {
+    if (selectedPositionIds.size === 0) return;
+    setConfirmPositionState({ type: "bulk", ids: Array.from(selectedPositionIds) });
+  }
+
+  async function confirmPositionDeletion() {
+    if (!confirmPositionState) return;
+    if (confirmPositionState.type === "single") {
+      await deleteInvestmentPosition(confirmPositionState.id);
+      if (editingPositionId === confirmPositionState.id) closePositionModal();
+      setSelectedPositionIds((prev) => {
+        if (!prev.has(confirmPositionState.id)) return prev;
+        const next = new Set(prev);
+        next.delete(confirmPositionState.id);
+        return next;
+      });
+    } else {
+      await deleteInvestmentPositions(confirmPositionState.ids);
+      setSelectedPositionIds(new Set());
     }
+    setConfirmPositionState(null);
   }
 
   function handleModelChange(modelKey: string) {
@@ -276,12 +381,17 @@ export default function InvestimentosPage() {
           </p>
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Rendimento lançado
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Rendimento</p>
           <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(totalReturns, selectedCurrency)}
+            {formatCurrency(totalRendimento, selectedCurrency)}
           </p>
+          {projectedGainTotal > 0 && (
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              {formatCurrency(projectedGainTotal, selectedCurrency)} projetado
+              (renda fixa) + {formatCurrency(totalReturns, selectedCurrency)}{" "}
+              lançado
+            </p>
+          )}
         </div>
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -293,33 +403,27 @@ export default function InvestimentosPage() {
         </div>
       </div>
 
-      {projectablePositions.length > 0 && (
-        <div className="tech-card rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/50">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Projeção de rendimento (renda fixa)
-          </p>
-          <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
-            + {formatCurrency(projectedGainTotal, selectedCurrency)}
-          </p>
-          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-            Estimativa calculada pela taxa configurada em cada aporte de renda
-            fixa — não é rendimento confirmado, só entra no patrimônio quando
-            você lançar de fato em &ldquo;Rendimentos&rdquo;.
-          </p>
-        </div>
-      )}
-
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             Aportes
           </h2>
-          <button
-            onClick={openNewPositionModal}
-            className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
-          >
-            + Novo aporte
-          </button>
+          <div className="flex items-center gap-2">
+            {selectedPositionIds.size > 0 && (
+              <button
+                onClick={requestBulkDeletePositions}
+                className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                Excluir selecionados ({selectedPositionIds.size})
+              </button>
+            )}
+            <button
+              onClick={openNewPositionModal}
+              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+            >
+              + Novo aporte
+            </button>
+          </div>
         </div>
 
         <Modal
@@ -436,10 +540,9 @@ export default function InvestimentosPage() {
                   </select>
                 </div>
                 <p className="text-xs text-slate-400 dark:text-slate-500 sm:col-span-2">
-                  A partir daqui, o valor projetado desse aporte já vai
-                  aparecer atualizado sozinho conforme os meses passam, com
-                  base nessa taxa. É uma estimativa, não uma rentabilidade
-                  garantida.
+                  O valor desse aporte já vai atualizar sozinho, com base
+                  nessa taxa, e soma automaticamente ao Patrimônio total
+                  conforme os meses passam.
                 </p>
               </>
             )}
@@ -479,7 +582,7 @@ export default function InvestimentosPage() {
                     const position = investmentPositions.find(
                       (p) => p.id === editingPositionId,
                     );
-                    if (position) handleDeletePosition(position);
+                    if (position) requestDeletePosition(position);
                   }}
                   className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
                 >
@@ -494,7 +597,18 @@ export default function InvestimentosPage() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-950">
               <tr>
-                <th className="w-10 px-4 py-3"></th>
+                <th className="w-10 px-4 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      investmentPositions.length > 0 &&
+                      selectedPositionIds.size === investmentPositions.length
+                    }
+                    onChange={toggleSelectAllPositions}
+                    aria-label="Selecionar todos os aportes"
+                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Data
                 </th>
@@ -510,6 +624,7 @@ export default function InvestimentosPage() {
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Projeção atual
                 </th>
+                <th className="w-20 px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -518,14 +633,14 @@ export default function InvestimentosPage() {
                   key={position.id}
                   className="group hover:bg-slate-50 dark:hover:bg-slate-800/50"
                 >
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => startEditPosition(position)}
-                      aria-label="Editar aporte"
-                      className="text-slate-300 hover:text-slate-700 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-200 dark:group-hover:text-slate-400"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </button>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedPositionIds.has(position.id)}
+                      onChange={() => togglePositionSelected(position.id)}
+                      aria-label="Selecionar aporte"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                    />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                     {formatDate(position.date)}
@@ -558,12 +673,30 @@ export default function InvestimentosPage() {
                       <span className="text-slate-400 dark:text-slate-500">—</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => startEditPosition(position)}
+                        aria-label="Editar aporte"
+                        className={rowActionIconClass}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => requestDeletePosition(position)}
+                        aria-label="Excluir aporte"
+                        className={rowDeleteIconClass}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {investmentPositions.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500"
                   >
                     Nenhum aporte lançado ainda.
@@ -576,16 +709,26 @@ export default function InvestimentosPage() {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             Rendimentos lançados
           </h2>
-          <button
-            onClick={openNewReturnModal}
-            className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
-          >
-            + Novo rendimento
-          </button>
+          <div className="flex items-center gap-2">
+            {selectedReturnIds.size > 0 && (
+              <button
+                onClick={requestBulkDeleteReturns}
+                className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                Excluir selecionados ({selectedReturnIds.size})
+              </button>
+            )}
+            <button
+              onClick={openNewReturnModal}
+              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+            >
+              + Novo rendimento
+            </button>
+          </div>
         </div>
 
         <Modal
@@ -668,7 +811,7 @@ export default function InvestimentosPage() {
                     const entry = investmentReturns.find(
                       (r) => r.id === editingReturnId,
                     );
-                    if (entry) handleDeleteReturn(entry);
+                    if (entry) requestDeleteReturn(entry);
                   }}
                   className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
                 >
@@ -683,7 +826,18 @@ export default function InvestimentosPage() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-950">
               <tr>
-                <th className="w-10 px-4 py-3"></th>
+                <th className="w-10 px-4 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      investmentReturns.length > 0 &&
+                      selectedReturnIds.size === investmentReturns.length
+                    }
+                    onChange={toggleSelectAllReturns}
+                    aria-label="Selecionar todos os rendimentos"
+                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Data
                 </th>
@@ -693,19 +847,20 @@ export default function InvestimentosPage() {
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Valor
                 </th>
+                <th className="w-20 px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {investmentReturns.map((entry) => (
                 <tr key={entry.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => startEditReturn(entry)}
-                      aria-label="Editar rendimento"
-                      className="text-slate-300 hover:text-slate-700 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-200 dark:group-hover:text-slate-400"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </button>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedReturnIds.has(entry.id)}
+                      onChange={() => toggleReturnSelected(entry.id)}
+                      aria-label="Selecionar rendimento"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                    />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                     {formatDate(entry.date)}
@@ -716,11 +871,29 @@ export default function InvestimentosPage() {
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                     +{formatCurrency(entry.amount, entry.currency)}
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => startEditReturn(entry)}
+                        aria-label="Editar rendimento"
+                        className={rowActionIconClass}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => requestDeleteReturn(entry)}
+                        aria-label="Excluir rendimento"
+                        className={rowDeleteIconClass}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {investmentReturns.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
                     Nenhum rendimento lançado ainda.
                   </td>
                 </tr>
@@ -729,6 +902,42 @@ export default function InvestimentosPage() {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmPositionState !== null}
+        title={
+          confirmPositionState?.type === "bulk"
+            ? "Excluir aportes selecionados"
+            : "Excluir aporte"
+        }
+        message={
+          confirmPositionState?.type === "bulk"
+            ? `Tem certeza que deseja excluir ${confirmPositionState.ids.length} ${confirmPositionState.ids.length === 1 ? "aporte selecionado" : "aportes selecionados"}? Essa ação não pode ser desfeita.`
+            : confirmPositionState?.type === "single"
+              ? `Excluir o aporte "${confirmPositionState.description}"? Essa ação não pode ser desfeita.`
+              : ""
+        }
+        onConfirm={confirmPositionDeletion}
+        onCancel={() => setConfirmPositionState(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmReturnState !== null}
+        title={
+          confirmReturnState?.type === "bulk"
+            ? "Excluir rendimentos selecionados"
+            : "Excluir rendimento"
+        }
+        message={
+          confirmReturnState?.type === "bulk"
+            ? `Tem certeza que deseja excluir ${confirmReturnState.ids.length} ${confirmReturnState.ids.length === 1 ? "rendimento selecionado" : "rendimentos selecionados"}? Essa ação não pode ser desfeita.`
+            : confirmReturnState?.type === "single"
+              ? `Excluir o rendimento "${confirmReturnState.label}"? Essa ação não pode ser desfeita.`
+              : ""
+        }
+        onConfirm={confirmReturnDeletion}
+        onCancel={() => setConfirmReturnState(null)}
+      />
     </div>
   );
 }

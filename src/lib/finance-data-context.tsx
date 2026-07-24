@@ -197,6 +197,7 @@ interface FinanceDataContextValue {
     updates: Partial<Omit<InvestmentReturn, "id">>,
   ) => Promise<void>;
   deleteInvestmentReturn: (id: string) => Promise<void>;
+  deleteInvestmentReturns: (ids: string[]) => Promise<void>;
   investmentPositions: InvestmentPosition[];
   addInvestmentPosition: (position: InvestmentPosition) => Promise<void>;
   updateInvestmentPosition: (
@@ -204,6 +205,7 @@ interface FinanceDataContextValue {
     updates: Partial<Omit<InvestmentPosition, "id">>,
   ) => Promise<void>;
   deleteInvestmentPosition: (id: string) => Promise<void>;
+  deleteInvestmentPositions: (ids: string[]) => Promise<void>;
   budgetGoals: BudgetGoal[];
   addBudgetGoal: (goal: BudgetGoal) => Promise<void>;
   updateBudgetGoal: (
@@ -601,6 +603,19 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function deleteInvestmentReturns(ids: string[]) {
+    if (ids.length === 0) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("investment_returns")
+      .delete()
+      .in("id", ids);
+    if (!error) {
+      const idSet = new Set(ids);
+      setInvestmentReturns((prev) => prev.filter((r) => !idSet.has(r.id)));
+    }
+  }
+
   async function addInvestmentPosition(position: InvestmentPosition) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -665,6 +680,19 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
       .eq("id", id);
     if (!error) {
       setInvestmentPositions((prev) => prev.filter((p) => p.id !== id));
+    }
+  }
+
+  async function deleteInvestmentPositions(ids: string[]) {
+    if (ids.length === 0) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("investment_positions")
+      .delete()
+      .in("id", ids);
+    if (!error) {
+      const idSet = new Set(ids);
+      setInvestmentPositions((prev) => prev.filter((p) => !idSet.has(p.id)));
     }
   }
 
@@ -739,10 +767,12 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         addInvestmentReturn,
         updateInvestmentReturn,
         deleteInvestmentReturn,
+        deleteInvestmentReturns,
         investmentPositions,
         addInvestmentPosition,
         updateInvestmentPosition,
         deleteInvestmentPosition,
+        deleteInvestmentPositions,
         budgetGoals,
         addBudgetGoal,
         updateBudgetGoal,
