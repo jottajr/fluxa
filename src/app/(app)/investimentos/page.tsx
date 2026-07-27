@@ -425,9 +425,15 @@ export default function InvestimentosPage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Aportes
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Aportes
+            </h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              A projeção de renda fixa é recalculada todos os dias, com base
+              na taxa configurada em cada aporte.
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             {selectedPositionIds.size > 0 && (
               <button
@@ -571,9 +577,10 @@ export default function InvestimentosPage() {
                   </select>
                 </div>
                 <p className="text-xs text-slate-400 dark:text-slate-500 sm:col-span-2">
-                  O valor desse aporte já vai atualizar sozinho, com base
-                  nessa taxa, e soma automaticamente ao Patrimônio total
-                  conforme os meses passam.
+                  Com base nessa taxa, o valor projetado deste aporte é
+                  recalculado automaticamente todos os dias — ele cresce um
+                  pouco a cada dia que passa, sem você precisar lançar nada, e
+                  já entra somado no Patrimônio total.
                 </p>
               </>
             )}
