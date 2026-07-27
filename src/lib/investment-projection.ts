@@ -170,3 +170,36 @@ export function buildPatrimonioTimeline(
 
   return points;
 }
+
+export type TimelineGranularity = "mensal" | "semestral" | "anual";
+
+export interface InvestmentTimeline {
+  points: PatrimonioPoint[];
+  granularity: TimelineGranularity;
+}
+
+export function buildInvestmentTimeline(
+  positions: InvestmentPosition[],
+  returns: InvestmentReturn[],
+  currency: Currency,
+  today: Date = new Date(),
+): InvestmentTimeline {
+  const monthly = buildPatrimonioTimeline(positions, returns, currency, today);
+
+  if (monthly.length <= 12) {
+    return { points: monthly, granularity: "mensal" };
+  }
+
+  const granularity: TimelineGranularity = monthly.length <= 36 ? "semestral" : "anual";
+  const step = granularity === "semestral" ? 6 : 12;
+
+  const sampled: PatrimonioPoint[] = [];
+  for (let i = monthly.length - 1; i >= 0; i -= step) {
+    sampled.unshift(monthly[i]);
+  }
+  if (sampled[0] !== monthly[0]) {
+    sampled.unshift(monthly[0]);
+  }
+
+  return { points: sampled, granularity };
+}

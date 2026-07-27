@@ -16,7 +16,7 @@ import {
   sumByCurrency,
 } from "@/lib/currency";
 import {
-  buildPatrimonioTimeline,
+  buildInvestmentTimeline,
   getMaturityAlert,
   INVESTMENT_MODEL_PRESETS,
   isProjectable,
@@ -124,8 +124,8 @@ export default function InvestimentosPage() {
   const totalRendimento = totalReturns + projectedGainTotal;
   const totalEquity = totalContributed + totalRendimento;
 
-  const timelinePoints = useMemo(
-    () => buildPatrimonioTimeline(investmentPositions, investmentReturns, selectedCurrency),
+  const timeline = useMemo(
+    () => buildInvestmentTimeline(investmentPositions, investmentReturns, selectedCurrency),
     [investmentPositions, investmentReturns, selectedCurrency],
   );
 
@@ -414,12 +414,19 @@ export default function InvestimentosPage() {
         </div>
       </div>
 
-      {timelinePoints.length > 1 && (
+      {timeline.points.length > 1 && (
         <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-            Evolução do patrimônio
-          </h2>
-          <InvestmentTimelineChart points={timelinePoints} currency={selectedCurrency} />
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Evolução do patrimônio
+            </h2>
+            {timeline.granularity !== "mensal" && (
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                Valores {timeline.granularity === "semestral" ? "semestrais" : "anuais"}
+              </span>
+            )}
+          </div>
+          <InvestmentTimelineChart points={timeline.points} currency={selectedCurrency} />
         </div>
       )}
 

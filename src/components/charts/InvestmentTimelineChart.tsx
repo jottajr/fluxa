@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { formatCurrency, MONTH_ABBR } from "@/lib/format";
 import type { PatrimonioPoint } from "@/lib/investment-projection";
 import type { Currency } from "@/types";
@@ -20,6 +23,12 @@ export function InvestmentTimelineChart({
   points: PatrimonioPoint[];
   currency: Currency;
 }) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActiveIndex(null);
+  }, [points]);
+
   if (points.length === 0) return null;
 
   const values = points.map((p) => p.value);
@@ -37,51 +46,117 @@ export function InvestmentTimelineChart({
   function yFor(value: number): number {
     return PAD_TOP + plotHeight - ((value - minValue) / range) * plotHeight;
   }
+  function hitBounds(index: number): { start: number; end: number } {
+    const x = xFor(index);
+    const start = index === 0 ? -1 : (xFor(index - 1) + x) / 2;
+    const end = index === points.length - 1 ? WIDTH + 1 : (x + xFor(index + 1)) / 2;
+    return { start, end };
+  }
 
   const linePath = points
     .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(p.value)}`)
     .join(" ");
   const areaPath = `${linePath} L ${xFor(points.length - 1)} ${PAD_TOP + plotHeight} L ${xFor(0)} ${PAD_TOP + plotHeight} Z`;
 
-  const labelStep = Math.max(1, Math.ceil(points.length / 6));
   const first = points[0];
   const last = points[points.length - 1];
+  const active = activeIndex !== null ? points[activeIndex] : null;
 
   return (
     <div className="w-full">
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="none"
-        className="h-[180px] w-full"
-      >
-        <path d={areaPath} fill="var(--accent)" opacity="0.12" />
-        <path
-          d={linePath}
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {points.map((p, i) =>
-          i === 0 || i === points.length - 1 || i % labelStep === 0 ? (
-            <circle key={p.month} cx={xFor(i)} cy={yFor(p.value)} r="2.5" fill="var(--accent)" />
-          ) : null,
-        )}
-        {points.map((p, i) =>
-          i === 0 || i === points.length - 1 || i % labelStep === 0 ? (
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          preserveAspectRatio="none"
+          className="h-[180px] w-full"
+          onMouseLeave={() => setActiveIndex(null)}
+        >
+          <path d={areaPath} fill="var(--accent)" opacity="0.12" />
+          <path
+            d={linePath}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {activeIndex !== null && (
+            <line
+              x1={xFor(activeIndex)}
+              y1={PAD_TOP}
+              x2={xFor(activeIndex)}
+              y2={PAD_TOP + plotHeight}
+              stroke="var(--accent)"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+              opacity="0.4"
+            />
+          )}
+
+          {points.map((p, i) => (
+            <circle
+              key={p.month}
+              cx={xFor(i)}
+              cy={yFor(p.value)}
+              r={activeIndex === i ? 4 : 2.5}
+              fill="var(--accent)"
+            />
+          ))}
+
+          {points.map((p, i) => (
             <text
               key={`label-${p.month}`}
               x={xFor(i)}
               y={HEIGHT - 8}
               textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}
-              className="fill-slate-400 text-[10px] dark:fill-slate-500"
+              className={`text-[10px] ${
+                activeIndex === i
+                  ? "fill-[var(--accent)] font-semibold"
+                  : "fill-slate-400 dark:fill-slate-500"
+              }`}
             >
               {formatMonthLabel(p.month)}
             </text>
-          ) : null,
+          ))}
+
+          {points.map((p, i) => {
+            const { start, end } = hitBounds(i);
+            return (
+              <rect
+                key={`hit-${p.month}`}
+                x={start}
+                y={0}
+                width={end - start}
+                height={HEIGHT}
+                fill="transparent"
+                onPointerEnter={() => setActiveIndex(i)}
+                onClick={() => setActiveIndex(i)}
+                className="cursor-pointer"
+              />
+            );
+          })}
+        </svg>
+
+        {active && activeIndex !== null && (
+          <div
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-lg dark:border-slate-700 dark:bg-slate-800"
+            style={{
+              left: `${(xFor(activeIndex) / WIDTH) * 100}%`,
+              top: `${(yFor(active.value) / HEIGHT) * 100}%`,
+              marginTop: "-8px",
+            }}
+          >
+            <p className="font-medium text-slate-500 dark:text-slate-400">
+              {formatMonthLabel(active.month)}
+            </p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100">
+              {formatCurrency(active.value, currency)}
+            </p>
+          </div>
         )}
-      </svg>
+      </div>
+
       <div className="mt-1 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
         <span>{formatCurrency(first.value, currency)}</span>
         <span className="font-medium text-slate-600 dark:text-slate-300">
