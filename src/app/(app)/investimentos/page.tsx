@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { CurrencySelector } from "@/components/CurrencySelector";
+import { InvestmentTimelineChart } from "@/components/charts/InvestmentTimelineChart";
 import {
   CURRENCY_OPTIONS,
   PRIMARY_CURRENCY,
@@ -15,6 +16,8 @@ import {
   sumByCurrency,
 } from "@/lib/currency";
 import {
+  buildPatrimonioTimeline,
+  getMaturityAlert,
   INVESTMENT_MODEL_PRESETS,
   isProjectable,
   projectedGain,
@@ -69,6 +72,7 @@ function emptyPositionForm() {
     category: defaultModel.category,
     rateValue: String(defaultModel.rateValue ?? ""),
     rateUnit: (defaultModel.rateUnit ?? "anual") as InvestmentRateUnit,
+    maturityDate: "",
     note: "",
   };
 }
@@ -119,6 +123,11 @@ export default function InvestimentosPage() {
 
   const totalRendimento = totalReturns + projectedGainTotal;
   const totalEquity = totalContributed + totalRendimento;
+
+  const timelinePoints = useMemo(
+    () => buildPatrimonioTimeline(investmentPositions, investmentReturns, selectedCurrency),
+    [investmentPositions, investmentReturns, selectedCurrency],
+  );
 
   // ---- rendimentos (lançamento manual) ----
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -263,6 +272,7 @@ export default function InvestimentosPage() {
       category: position.category,
       rateValue: position.rateValue !== null ? String(position.rateValue) : "",
       rateUnit: position.rateUnit ?? "anual",
+      maturityDate: position.maturityDate ?? "",
       note: position.note,
     });
     setEditingPositionId(position.id);
@@ -342,6 +352,7 @@ export default function InvestimentosPage() {
       category: positionForm.category,
       rateValue: isRendaFixa && positionForm.rateValue ? Number(positionForm.rateValue) : null,
       rateUnit: isRendaFixa ? positionForm.rateUnit : null,
+      maturityDate: positionForm.maturityDate || null,
       note: positionForm.note,
     };
 
@@ -402,6 +413,15 @@ export default function InvestimentosPage() {
           </p>
         </div>
       </div>
+
+      {timelinePoints.length > 1 && (
+        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">
+            Evolução do patrimônio
+          </h2>
+          <InvestmentTimelineChart points={timelinePoints} currency={selectedCurrency} />
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
@@ -506,6 +526,17 @@ export default function InvestimentosPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className={labelClass}>Vencimento (opcional)</label>
+              <input
+                type="date"
+                value={positionForm.maturityDate}
+                onChange={(e) =>
+                  setPositionForm((f) => ({ ...f, maturityDate: e.target.value }))
+                }
+                className={inputClass}
+              />
             </div>
 
             {positionForm.category === "renda_fixa" && (
@@ -628,7 +659,9 @@ export default function InvestimentosPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {investmentPositions.map((position) => (
+              {investmentPositions.map((position) => {
+                const maturityAlert = getMaturityAlert(position.maturityDate);
+                return (
                 <tr
                   key={position.id}
                   className="group hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -647,6 +680,17 @@ export default function InvestimentosPage() {
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                     {position.description}
+                    {maturityAlert && (
+                      <span
+                        className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                          maturityAlert.level === "critical"
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                        }`}
+                      >
+                        ⚠ {maturityAlert.message}
+                      </span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm">
                     <span
@@ -692,7 +736,8 @@ export default function InvestimentosPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {investmentPositions.length === 0 && (
                 <tr>
                   <td

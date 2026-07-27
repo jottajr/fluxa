@@ -64,6 +64,7 @@ export interface InvestmentPosition {
   category: InvestmentCategory;
   rateValue: number | null;
   rateUnit: InvestmentRateUnit | null;
+  maturityDate: string | null;
   note: string;
 }
 

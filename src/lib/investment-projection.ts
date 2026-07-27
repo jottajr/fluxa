@@ -1,4 +1,10 @@
-import type { InvestmentCategory, InvestmentPosition, InvestmentRateUnit } from "@/types";
+import type {
+  Currency,
+  InvestmentCategory,
+  InvestmentPosition,
+  InvestmentRateUnit,
+  InvestmentReturn,
+} from "@/types";
 
 export const INVESTMENT_MODEL_PRESETS: {
   key: string;
@@ -32,6 +38,14 @@ export const INVESTMENT_MODEL_PRESETS: {
 
 const AVG_DAYS_PER_MONTH = 30.4368;
 const MS_PER_DAY = 86400000;
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toLocalISODate(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 function monthlyRateFor(position: InvestmentPosition): number | null {
   if (
@@ -72,4 +86,87 @@ export function projectedGain(
   asOf: Date = new Date(),
 ): number {
   return projectedValue(position, asOf) - position.amount;
+}
+
+const MATURITY_WARNING_DAYS = 30;
+
+export interface MaturityAlert {
+  level: "critical" | "warning";
+  message: string;
+}
+
+export function getMaturityAlert(
+  maturityDate: string | null,
+  today: Date = new Date(),
+): MaturityAlert | null {
+  if (!maturityDate) return null;
+
+  const start = new Date(`${toLocalISODate(today)}T00:00:00`);
+  const due = new Date(`${maturityDate}T00:00:00`);
+  const diffDays = Math.round((due.getTime() - start.getTime()) / MS_PER_DAY);
+
+  if (diffDays < 0) {
+    return {
+      level: "critical",
+      message: `Venceu há ${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? "dia" : "dias"}`,
+    };
+  }
+  if (diffDays === 0) return { level: "warning", message: "Vence hoje" };
+  if (diffDays === 1) return { level: "warning", message: "Vence amanhã" };
+  if (diffDays <= MATURITY_WARNING_DAYS) {
+    return { level: "warning", message: `Vence em ${diffDays} dias` };
+  }
+  return null;
+}
+
+export interface PatrimonioPoint {
+  month: string;
+  value: number;
+}
+
+export function buildPatrimonioTimeline(
+  positions: InvestmentPosition[],
+  returns: InvestmentReturn[],
+  currency: Currency,
+  today: Date = new Date(),
+): PatrimonioPoint[] {
+  const relevantPositions = positions.filter((p) => p.currency === currency);
+  const relevantReturns = returns.filter((r) => r.currency === currency);
+  if (relevantPositions.length === 0 && relevantReturns.length === 0) return [];
+
+  const earliestDate = [
+    ...relevantPositions.map((p) => p.date),
+    ...relevantReturns.map((r) => r.date),
+  ].reduce((min, d) => (d < min ? d : min));
+
+  const [startYear, startMonth] = earliestDate.split("-").map(Number);
+  const endYear = today.getFullYear();
+  const endMonth = today.getMonth() + 1;
+
+  const points: PatrimonioPoint[] = [];
+  let year = startYear;
+  let month = startMonth;
+
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    const isCurrentMonth = year === endYear && month === endMonth;
+    const asOf = isCurrentMonth ? today : new Date(year, month, 0);
+    const asOfStr = toLocalISODate(asOf);
+
+    const contributed = relevantPositions
+      .filter((p) => p.date <= asOfStr)
+      .reduce((sum, p) => sum + projectedValue(p, asOf), 0);
+    const returned = relevantReturns
+      .filter((r) => r.date <= asOfStr)
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    points.push({ month: `${year}-${pad(month)}`, value: contributed + returned });
+
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+
+  return points;
 }

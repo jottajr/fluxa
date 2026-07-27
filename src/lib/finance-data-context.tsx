@@ -137,6 +137,7 @@ interface InvestmentPositionRow {
   category: InvestmentCategory;
   rate_value: number | null;
   rate_unit: InvestmentRateUnit | null;
+  maturity_date: string | null;
   note: string | null;
 }
 
@@ -148,6 +149,7 @@ function rowToInvestmentPosition(row: InvestmentPositionRow): InvestmentPosition
     currency: row.currency,
     date: row.contribution_date,
     category: row.category,
+    maturityDate: row.maturity_date,
     rateValue: row.rate_value !== null ? Number(row.rate_value) : null,
     rateUnit: row.rate_unit,
     note: row.note ?? "",
@@ -273,7 +275,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
           supabase
             .from("investment_positions")
             .select(
-              "id, description, amount, currency, contribution_date, category, rate_value, rate_unit, note",
+              "id, description, amount, currency, contribution_date, category, rate_value, rate_unit, maturity_date, note",
             )
             .eq("profile_id", activeProfileId)
             .order("contribution_date", { ascending: false }),
@@ -629,10 +631,11 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         category: position.category,
         rate_value: position.rateValue,
         rate_unit: position.rateUnit,
+        maturity_date: position.maturityDate,
         note: position.note || null,
       })
       .select(
-        "id, description, amount, currency, contribution_date, category, rate_value, rate_unit, note",
+        "id, description, amount, currency, contribution_date, category, rate_value, rate_unit, maturity_date, note",
       )
       .single();
 
@@ -661,6 +664,9 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         ...(updates.category !== undefined && { category: updates.category }),
         ...(updates.rateValue !== undefined && { rate_value: updates.rateValue }),
         ...(updates.rateUnit !== undefined && { rate_unit: updates.rateUnit }),
+        ...(updates.maturityDate !== undefined && {
+          maturity_date: updates.maturityDate,
+        }),
         ...(updates.note !== undefined && { note: updates.note || null }),
       })
       .eq("id", id);
