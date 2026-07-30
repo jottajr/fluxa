@@ -239,15 +239,21 @@ export default function ConfiguracoesPage() {
           >
             <div className="flex items-center gap-3">
               {notifyDueSoon && (
-                <input
-                  type="number"
-                  min={1}
-                  max={15}
-                  value={dueSoonDays}
-                  onChange={(e) => setDueSoonDays(e.target.value)}
-                  className={`${inputClass} max-w-[70px]`}
-                  aria-label="Dias de antecedência"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={15}
+                    value={dueSoonDays}
+                    onChange={(e) => setDueSoonDays(e.target.value)}
+                    className={`${inputClass} max-w-[70px]`}
+                    placeholder="Nº de dias"
+                    aria-label="Dias de antecedência para avisar do vencimento"
+                  />
+                  <span className="text-xs font-medium text-[var(--text-tertiary)]">
+                    dias antes
+                  </span>
+                </div>
               )}
               <input
                 type="checkbox"

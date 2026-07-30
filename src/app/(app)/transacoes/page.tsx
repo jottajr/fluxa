@@ -718,11 +718,11 @@ export default function TransacoesPage() {
             aria-label="Selecionar todas"
             className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
           />
-          <div>Descrição</div>
-          <div>Categoria</div>
-          <div>Forma de pagamento</div>
+          <div className="text-center">Descrição</div>
+          <div className="text-center">Categoria</div>
+          <div className="text-center">Forma de pagamento</div>
           <div className="text-right">Valor</div>
-          <div>Status</div>
+          <div className="text-center">Status</div>
           <div />
         </div>
 
@@ -740,7 +740,7 @@ export default function TransacoesPage() {
                 aria-label="Selecionar transação"
                 className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
               />
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[12.5px] font-bold ${
                     tx.type === "entrada"
@@ -750,7 +750,7 @@ export default function TransacoesPage() {
                 >
                   {initial}
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 text-left">
                   <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
                     {tx.description}
                     {tx.recurring && (
@@ -769,12 +769,12 @@ export default function TransacoesPage() {
                   </p>
                 </div>
               </div>
-              <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+              <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">
                 {tx.categoryId && categoriesById.get(tx.categoryId)
                   ? `${categoriesById.get(tx.categoryId)!.icon} ${categoriesById.get(tx.categoryId)!.name}`
                   : "—"}
               </div>
-              <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+              <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">
                 {getPaymentMethodLabel(tx.paymentMethodId, cards, genericPaymentMethods)}
               </div>
               <div
@@ -789,7 +789,7 @@ export default function TransacoesPage() {
                 {tx.type === "entrada" ? "+" : "-"}
                 {formatCurrency(tx.amount, tx.currency)}
               </div>
-              <div>
+              <div className="flex justify-center">
                 <StatusBadge status={tx.status} />
               </div>
               <div className="flex items-center justify-end gap-2">

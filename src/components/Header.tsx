@@ -60,10 +60,13 @@ export function Header({
         >
           <MenuIcon className="h-5 w-5" />
         </button>
-        <span className="flex items-center gap-1.5 font-display text-lg font-extrabold text-[var(--foreground)]">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1.5 font-display text-lg font-extrabold text-[var(--foreground)]"
+        >
           <img src="/fluxa-icon.png" alt="" className="h-7 w-7" />
           Fluxa
-        </span>
+        </Link>
         <ProfileSwitcher />
       </div>
 

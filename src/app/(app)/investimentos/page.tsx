@@ -138,14 +138,23 @@ export default function InvestimentosPage() {
       ? monthlyEquitySeries[monthlyEquitySeries.length - 2].value
       : null;
 
-  const currentMonthStr = new Date().toISOString().slice(0, 7);
-  const aportesMes = useMemo(
-    () =>
-      investmentPositions
-        .filter((p) => p.currency === selectedCurrency && p.date.startsWith(currentMonthStr))
-        .reduce((sum, p) => sum + p.amount, 0),
-    [investmentPositions, selectedCurrency, currentMonthStr],
-  );
+  const aportesMediaMensal = useMemo(() => {
+    const positionsInCurrency = investmentPositions.filter(
+      (p) => p.currency === selectedCurrency,
+    );
+    if (positionsInCurrency.length === 0) return 0;
+
+    const earliestDate = positionsInCurrency.reduce(
+      (min, p) => (p.date < min ? p.date : min),
+      positionsInCurrency[0].date,
+    );
+    const [startYear, startMonth] = earliestDate.split("-").map(Number);
+    const today = new Date();
+    const monthsSinceFirst =
+      (today.getFullYear() - startYear) * 12 + (today.getMonth() + 1 - startMonth) + 1;
+
+    return totalContributed / Math.max(1, monthsSinceFirst);
+  }, [investmentPositions, selectedCurrency, totalContributed]);
   const allocation = useMemo(() => {
     const totals = new Map<InvestmentCategory, number>();
     investmentPositions
@@ -446,10 +455,11 @@ export default function InvestimentosPage() {
           }
         />
         <KpiCard
-          label="Aportes (mês)"
-          value={formatCurrency(aportesMes, selectedCurrency)}
+          label="Aportes (média mensal)"
+          value={formatCurrency(aportesMediaMensal, selectedCurrency)}
           color="var(--foreground)"
           variation={null}
+          caption="Total aportado dividido pelos meses desde o primeiro aporte"
         />
       </div>
 

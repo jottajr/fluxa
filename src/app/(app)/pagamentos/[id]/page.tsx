@@ -11,10 +11,21 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { PieChart, type PieSlice } from "@/components/charts/PieChart";
 import { KpiCard } from "@/components/KpiCard";
 import { EmptyState } from "@/components/EmptyState";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 
 export default function PaymentMethodDetailPage() {
   const params = useParams<{ id: string }>();
-  const { cards, transactions, categories, genericPaymentMethods } = useFinanceData();
+  const {
+    cards,
+    transactions,
+    categories,
+    genericPaymentMethods,
+    budgetGoals,
+    addBudgetGoal,
+    updateBudgetGoal,
+    deleteBudgetGoal,
+  } = useFinanceData();
 
   const card = cards.find((c) => c.id === params.id);
   const generic = genericPaymentMethods.find((m) => m.id === params.id);
@@ -45,6 +56,53 @@ export default function PaymentMethodDetailPage() {
         .sort((a, b) => a.date.localeCompare(b.date)),
     [methodTransactions, selectedMonth],
   );
+
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  const currentMonthSpend = useMemo(
+    () =>
+      methodTransactions
+        .filter(
+          (tx) =>
+            tx.type === "saida" &&
+            tx.date.startsWith(currentMonthStr) &&
+            tx.currency === PRIMARY_CURRENCY,
+        )
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [methodTransactions, currentMonthStr],
+  );
+
+  const cardGoal = card
+    ? budgetGoals.find((g) => g.paymentMethodId === card.id)
+    : undefined;
+  const [budgetEditing, setBudgetEditing] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState("");
+
+  function startBudgetEdit() {
+    setBudgetDraft(cardGoal ? String(cardGoal.monthlyLimit) : "");
+    setBudgetEditing(true);
+  }
+
+  async function saveBudget() {
+    const value = Number(budgetDraft);
+    if (!value || value <= 0 || !card) return;
+    if (cardGoal) {
+      await updateBudgetGoal(cardGoal.id, { monthlyLimit: value });
+    } else {
+      await addBudgetGoal({
+        id: `goal-${crypto.randomUUID()}`,
+        categoryId: null,
+        paymentMethodId: card.id,
+        monthlyLimit: value,
+      });
+    }
+    setBudgetEditing(false);
+  }
+
+  async function removeBudget() {
+    if (!cardGoal) return;
+    await deleteBudgetGoal(cardGoal.id);
+    setBudgetEditing(false);
+  }
 
   const total = monthTransactions
     .filter((tx) => tx.currency === PRIMARY_CURRENCY)
@@ -191,6 +249,100 @@ export default function PaymentMethodDetailPage() {
           </div>
         )}
       </div>
+
+      {card && (
+        <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
+              Meta de gastos do cartão
+            </h2>
+            {cardGoal && !budgetEditing && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={startBudgetEdit}
+                  aria-label="Editar meta"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={removeBudget}
+                  aria-label="Remover meta"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3.5">
+            {budgetEditing ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  autoFocus
+                  value={budgetDraft}
+                  onChange={(e) => setBudgetDraft(e.target.value)}
+                  placeholder="Limite mensal"
+                  className="w-full max-w-[180px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+                <button
+                  onClick={saveBudget}
+                  className="shrink-0 text-xs font-bold text-[var(--accent)]"
+                >
+                  Salvar
+                </button>
+                <button
+                  onClick={() => setBudgetEditing(false)}
+                  className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : cardGoal ? (
+              <>
+                <p
+                  className="font-display text-xl font-extrabold tracking-tight tabular-nums"
+                  style={{
+                    color:
+                      currentMonthSpend > cardGoal.monthlyLimit
+                        ? "var(--chart-negative)"
+                        : "var(--foreground)",
+                  }}
+                >
+                  {formatCurrency(currentMonthSpend)}
+                  <span className="text-sm font-semibold text-[var(--text-tertiary)]">
+                    {" "}
+                    / {formatCurrency(cardGoal.monthlyLimit)}
+                  </span>
+                </p>
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, (currentMonthSpend / cardGoal.monthlyLimit) * 100))}%`,
+                      backgroundColor:
+                        currentMonthSpend > cardGoal.monthlyLimit
+                          ? "var(--chart-negative)"
+                          : "var(--chart-positive)",
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={startBudgetEdit}
+                className="text-xs font-semibold text-[var(--accent)]"
+              >
+                + Definir meta mensal
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
         <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">

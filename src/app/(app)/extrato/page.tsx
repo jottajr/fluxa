@@ -110,12 +110,12 @@ export default function ExtratoPage() {
 
       <div className="overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]">
         <div className="grid grid-cols-[100px_1.4fr_1fr_1fr_0.9fr_0.8fr] gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
-          <div>Data</div>
-          <div>Descrição</div>
-          <div>Categoria</div>
-          <div>Forma de pagamento</div>
+          <div className="text-center">Data</div>
+          <div className="text-center">Descrição</div>
+          <div className="text-center">Categoria</div>
+          <div className="text-center">Forma de pagamento</div>
           <div className="text-right">Valor</div>
-          <div>Status</div>
+          <div className="text-center">Status</div>
         </div>
 
         {filtered.map((tx) => (
@@ -123,10 +123,10 @@ export default function ExtratoPage() {
             key={tx.id}
             className="grid grid-cols-[100px_1.4fr_1fr_1fr_0.9fr_0.8fr] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
           >
-            <div className="text-[12.5px] font-medium text-[var(--text-tertiary)]">
+            <div className="text-center text-[12.5px] font-medium text-[var(--text-tertiary)]">
               {formatDate(tx.date)}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 text-center">
               <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
                 {tx.description}
                 {tx.recurring && (
@@ -141,12 +141,12 @@ export default function ExtratoPage() {
                 )}
               </p>
             </div>
-            <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+            <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">
               {tx.categoryId && categoriesById.get(tx.categoryId)
                 ? `${categoriesById.get(tx.categoryId)!.icon} ${categoriesById.get(tx.categoryId)!.name}`
                 : "—"}
             </div>
-            <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+            <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">
               {getPaymentMethodLabel(tx.paymentMethodId, cards, genericPaymentMethods)}
             </div>
             <div
@@ -161,7 +161,7 @@ export default function ExtratoPage() {
               {tx.type === "entrada" ? "+" : "-"}
               {formatCurrency(tx.amount, tx.currency)}
             </div>
-            <div>
+            <div className="flex justify-center">
               <StatusBadge status={tx.status} />
             </div>
           </div>
