@@ -88,6 +88,25 @@ export function formatPeriodLabel(
   return `Ano de ${year}`;
 }
 
+export function getPreviousPeriodRange(
+  periodType: PeriodType,
+  year: number,
+  subPeriod: number,
+): { year: number; subPeriod: number } | null {
+  if (periodType === "personalizado") return null;
+
+  if (periodType === "mensal") {
+    return subPeriod === 1 ? { year: year - 1, subPeriod: 12 } : { year, subPeriod: subPeriod - 1 };
+  }
+  if (periodType === "trimestral") {
+    return subPeriod === 1 ? { year: year - 1, subPeriod: 4 } : { year, subPeriod: subPeriod - 1 };
+  }
+  if (periodType === "semestral") {
+    return subPeriod === 1 ? { year: year - 1, subPeriod: 2 } : { year, subPeriod: subPeriod - 1 };
+  }
+  return { year: year - 1, subPeriod: 1 };
+}
+
 export function defaultSubPeriodFor(periodType: PeriodType, month: number): number {
   if (periodType === "mensal") return month;
   if (periodType === "trimestral") return Math.ceil(month / 3);

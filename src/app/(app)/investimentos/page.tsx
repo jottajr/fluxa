@@ -8,7 +8,12 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { CurrencySelector } from "@/components/CurrencySelector";
-import { InvestmentTimelineChart } from "@/components/charts/InvestmentTimelineChart";
+import { EmptyState } from "@/components/EmptyState";
+import { TimelineAreaChart } from "@/components/charts/TimelineAreaChart";
+import { SolidPieChart } from "@/components/charts/SolidPieChart";
+import { KpiCard, Variation } from "@/components/KpiCard";
+import { CATEGORICAL } from "@/lib/chart-colors";
+import { downsampleTimeline } from "@/lib/timeline";
 import {
   CURRENCY_OPTIONS,
   PRIMARY_CURRENCY,
@@ -16,7 +21,7 @@ import {
   sumByCurrency,
 } from "@/lib/currency";
 import {
-  buildInvestmentTimeline,
+  buildPatrimonioTimeline,
   getMaturityAlert,
   INVESTMENT_MODEL_PRESETS,
   isProjectable,
@@ -34,10 +39,6 @@ import type {
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const labelClass = "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300";
-const rowActionIconClass =
-  "text-slate-300 hover:text-slate-700 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-200 dark:group-hover:text-slate-400";
-const rowDeleteIconClass =
-  "text-slate-300 hover:text-red-600 group-hover:text-slate-500 dark:text-slate-600 dark:hover:text-red-400 dark:group-hover:text-slate-400";
 
 const CATEGORY_LABELS: Record<InvestmentCategory, string> = {
   renda_fixa: "Renda fixa",
@@ -124,10 +125,43 @@ export default function InvestimentosPage() {
   const totalRendimento = totalReturns + projectedGainTotal;
   const totalEquity = totalContributed + totalRendimento;
 
-  const timeline = useMemo(
-    () => buildInvestmentTimeline(investmentPositions, investmentReturns, selectedCurrency),
+  const monthlyEquitySeries = useMemo(
+    () => buildPatrimonioTimeline(investmentPositions, investmentReturns, selectedCurrency),
     [investmentPositions, investmentReturns, selectedCurrency],
   );
+  const timeline = useMemo(
+    () => downsampleTimeline(monthlyEquitySeries),
+    [monthlyEquitySeries],
+  );
+  const previousEquity =
+    monthlyEquitySeries.length >= 2
+      ? monthlyEquitySeries[monthlyEquitySeries.length - 2].value
+      : null;
+
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  const aportesMes = useMemo(
+    () =>
+      investmentPositions
+        .filter((p) => p.currency === selectedCurrency && p.date.startsWith(currentMonthStr))
+        .reduce((sum, p) => sum + p.amount, 0),
+    [investmentPositions, selectedCurrency, currentMonthStr],
+  );
+  const allocation = useMemo(() => {
+    const totals = new Map<InvestmentCategory, number>();
+    investmentPositions
+      .filter((p) => p.currency === selectedCurrency)
+      .forEach((p) => {
+        const value = isProjectable(p) ? projectedValue(p) : p.amount;
+        totals.set(p.category, (totals.get(p.category) ?? 0) + value);
+      });
+    return Array.from(totals.entries())
+      .map(([category, value], index) => ({
+        name: CATEGORY_LABELS[category],
+        value,
+        color: CATEGORICAL[index % CATEGORICAL.length],
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [investmentPositions, selectedCurrency]);
 
   // ---- rendimentos (lançamento manual) ----
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -364,79 +398,101 @@ export default function InvestimentosPage() {
     closePositionModal();
   }
 
+  const cardClass =
+    "rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6";
+
   return (
-    <div className="mx-auto max-w-4xl space-y-10">
+    <div className="mx-auto max-w-6xl space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
+          <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
             Investimentos
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Acompanhe seus aportes e rendimentos.
+          <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
+            Patrimônio investido e alocação
           </p>
         </div>
-        <CurrencySelector
-          currencies={currencies}
-          selected={selectedCurrency}
-          onSelect={setSelectedCurrency}
+        <div className="ml-auto">
+          <CurrencySelector
+            currencies={currencies}
+            selected={selectedCurrency}
+            onSelect={setSelectedCurrency}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Patrimônio total"
+          value={formatCurrency(totalEquity, selectedCurrency)}
+          color="var(--foreground)"
+          variation={<Variation current={totalEquity} previous={previousEquity} higherIsGood />}
+        />
+        <KpiCard
+          label="Total aportado"
+          value={formatCurrency(totalContributed, selectedCurrency)}
+          color="var(--foreground)"
+          variation={null}
+        />
+        <KpiCard
+          label="Rendimento"
+          value={formatCurrency(totalRendimento, selectedCurrency)}
+          color="var(--chart-positive)"
+          variation={null}
+          caption={
+            projectedGainTotal > 0
+              ? `${formatCurrency(projectedGainTotal, selectedCurrency)} projetado (renda fixa) + ${formatCurrency(totalReturns, selectedCurrency)} lançado`
+              : undefined
+          }
+        />
+        <KpiCard
+          label="Aportes (mês)"
+          value={formatCurrency(aportesMes, selectedCurrency)}
+          color="var(--foreground)"
+          variation={null}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Total aportado
-          </p>
-          <p className="mt-1 text-2xl font-medium text-slate-900 dark:text-slate-100">
-            {formatCurrency(totalContributed, selectedCurrency)}
-          </p>
-        </div>
-        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-500 dark:text-slate-400">Rendimento</p>
-          <p className="mt-1 text-2xl font-medium text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(totalRendimento, selectedCurrency)}
-          </p>
-          {projectedGainTotal > 0 && (
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-              {formatCurrency(projectedGainTotal, selectedCurrency)} projetado
-              (renda fixa) + {formatCurrency(totalReturns, selectedCurrency)}{" "}
-              lançado
-            </p>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]">
+        <div className={cardClass}>
+          <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
+            Alocação
+          </h2>
+          {allocation.length === 0 ? (
+            <p className="text-sm text-[var(--text-tertiary)]">Nenhum aporte lançado ainda.</p>
+          ) : (
+            <SolidPieChart data={allocation} />
           )}
         </div>
-        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Patrimônio total
-          </p>
-          <p className="mt-1 text-2xl font-medium text-slate-900 dark:text-slate-100">
-            {formatCurrency(totalEquity, selectedCurrency)}
-          </p>
-        </div>
-      </div>
 
-      {timeline.points.length > 1 && (
-        <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className={cardClass}>
           <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
               Evolução do patrimônio
             </h2>
             {timeline.granularity !== "mensal" && (
-              <span className="text-xs text-slate-400 dark:text-slate-500">
+              <span className="text-xs font-medium text-[var(--text-tertiary)]">
                 Valores {timeline.granularity === "semestral" ? "semestrais" : "anuais"}
               </span>
             )}
           </div>
-          <InvestmentTimelineChart points={timeline.points} currency={selectedCurrency} />
+          {timeline.points.length > 1 ? (
+            <TimelineAreaChart points={timeline.points} currency={selectedCurrency} />
+          ) : (
+            <p className="text-sm text-[var(--text-tertiary)]">
+              Lance mais de um aporte para ver a evolução ao longo do tempo.
+            </p>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
               Aportes
             </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-0.5 text-xs font-medium text-[var(--text-tertiary)]">
               A projeção de renda fixa é recalculada todos os dias, com base
               na taxa configurada em cada aporte.
             </p>
@@ -452,7 +508,7 @@ export default function InvestimentosPage() {
             )}
             <button
               onClick={openNewPositionModal}
-              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+              className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white"
             >
               + Novo aporte
             </button>
@@ -638,138 +694,110 @@ export default function InvestimentosPage() {
           </form>
         </Modal>
 
-        <div className="tech-card overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-            <thead className="bg-slate-50 dark:bg-slate-950">
-              <tr>
-                <th className="w-10 px-4 py-3 text-center">
-                  <input
-                    type="checkbox"
-                    checked={
-                      investmentPositions.length > 0 &&
-                      selectedPositionIds.size === investmentPositions.length
-                    }
-                    onChange={toggleSelectAllPositions}
-                    aria-label="Selecionar todos os aportes"
-                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Data
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Descrição
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Modelo
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Aportado
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Projeção atual
-                </th>
-                <th className="w-20 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {investmentPositions.map((position) => {
-                const maturityAlert = getMaturityAlert(position.maturityDate);
-                return (
-                <tr
-                  key={position.id}
-                  className="group hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                >
-                  <td className="px-4 py-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedPositionIds.has(position.id)}
-                      onChange={() => togglePositionSelected(position.id)}
-                      aria-label="Selecionar aporte"
-                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-                    />
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                    {formatDate(position.date)}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
+        <div className="overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]">
+          <div className="grid grid-cols-[28px_90px_1.5fr_1.2fr_1fr_1fr_60px] items-center gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+            <input
+              type="checkbox"
+              checked={
+                investmentPositions.length > 0 &&
+                selectedPositionIds.size === investmentPositions.length
+              }
+              onChange={toggleSelectAllPositions}
+              aria-label="Selecionar todos os aportes"
+              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+            />
+            <div>Data</div>
+            <div>Descrição</div>
+            <div>Modelo</div>
+            <div className="text-right">Aportado</div>
+            <div className="text-right">Projeção atual</div>
+            <div />
+          </div>
+
+          {investmentPositions.map((position) => {
+            const maturityAlert = getMaturityAlert(position.maturityDate);
+            return (
+              <div
+                key={position.id}
+                className="grid grid-cols-[28px_90px_1.5fr_1.2fr_1fr_1fr_60px] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedPositionIds.has(position.id)}
+                  onChange={() => togglePositionSelected(position.id)}
+                  aria-label="Selecionar aporte"
+                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                />
+                <div className="text-[12.5px] font-medium text-[var(--text-tertiary)]">
+                  {formatDate(position.date)}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
                     {position.description}
-                    {maturityAlert && (
-                      <span
-                        className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                          maturityAlert.level === "critical"
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                        }`}
-                      >
-                        ⚠ {maturityAlert.message}
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  </p>
+                  {maturityAlert && (
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE_CLASS[position.category]}`}
+                      className={`mt-1 inline-flex whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        maturityAlert.level === "critical"
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                      }`}
                     >
-                      {CATEGORY_LABELS[position.category]}
-                      {position.category === "renda_fixa" &&
-                        position.rateValue !== null &&
-                        ` · ${position.rateValue}% ${position.rateUnit === "anual" ? "a.a." : "a.m."}`}
+                      ⚠ {maturityAlert.message}
                     </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(position.amount, position.currency)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                    {isProjectable(position) ? (
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(
-                          projectedValue(position),
-                          position.currency,
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 dark:text-slate-500">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => startEditPosition(position)}
-                        aria-label="Editar aporte"
-                        className={rowActionIconClass}
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => requestDeletePosition(position)}
-                        aria-label="Excluir aporte"
-                        className={rowDeleteIconClass}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                );
-              })}
-              {investmentPositions.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500"
+                  )}
+                </div>
+                <div>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${CATEGORY_BADGE_CLASS[position.category]}`}
                   >
-                    Nenhum aporte lançado ainda.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    {CATEGORY_LABELS[position.category]}
+                    {position.category === "renda_fixa" &&
+                      position.rateValue !== null &&
+                      ` · ${position.rateValue}% ${position.rateUnit === "anual" ? "a.a." : "a.m."}`}
+                  </span>
+                </div>
+                <div className="font-display text-right text-[13.5px] font-bold tracking-tight tabular-nums text-[var(--foreground)]">
+                  {formatCurrency(position.amount, position.currency)}
+                </div>
+                <div className="font-display text-right text-[13.5px] font-bold tracking-tight tabular-nums">
+                  {isProjectable(position) ? (
+                    <span style={{ color: "var(--chart-positive)" }}>
+                      {formatCurrency(projectedValue(position), position.currency)}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--text-tertiary)]">—</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => startEditPosition(position)}
+                    aria-label="Editar aporte"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => requestDeletePosition(position)}
+                    aria-label="Excluir aporte"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {investmentPositions.length === 0 && (
+            <EmptyState message="Nenhum aporte lançado ainda." />
+          )}
         </div>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
             Rendimentos lançados
           </h2>
           <div className="flex items-center gap-2">
@@ -783,7 +811,7 @@ export default function InvestimentosPage() {
             )}
             <button
               onClick={openNewReturnModal}
-              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+              className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white"
             >
               + Novo rendimento
             </button>
@@ -881,84 +909,70 @@ export default function InvestimentosPage() {
           </form>
         </Modal>
 
-        <div className="tech-card overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-            <thead className="bg-slate-50 dark:bg-slate-950">
-              <tr>
-                <th className="w-10 px-4 py-3 text-center">
-                  <input
-                    type="checkbox"
-                    checked={
-                      investmentReturns.length > 0 &&
-                      selectedReturnIds.size === investmentReturns.length
-                    }
-                    onChange={toggleSelectAllReturns}
-                    aria-label="Selecionar todos os rendimentos"
-                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Data
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Observação
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Valor
-                </th>
-                <th className="w-20 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {investmentReturns.map((entry) => (
-                <tr key={entry.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="px-4 py-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedReturnIds.has(entry.id)}
-                      onChange={() => toggleReturnSelected(entry.id)}
-                      aria-label="Selecionar rendimento"
-                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-                    />
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                    {formatDate(entry.date)}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {entry.note || "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                    +{formatCurrency(entry.amount, entry.currency)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => startEditReturn(entry)}
-                        aria-label="Editar rendimento"
-                        className={rowActionIconClass}
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => requestDeleteReturn(entry)}
-                        aria-label="Excluir rendimento"
-                        className={rowDeleteIconClass}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {investmentReturns.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
-                    Nenhum rendimento lançado ainda.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]">
+          <div className="grid grid-cols-[28px_90px_1.6fr_1fr_60px] items-center gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+            <input
+              type="checkbox"
+              checked={
+                investmentReturns.length > 0 &&
+                selectedReturnIds.size === investmentReturns.length
+              }
+              onChange={toggleSelectAllReturns}
+              aria-label="Selecionar todos os rendimentos"
+              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+            />
+            <div>Data</div>
+            <div>Observação</div>
+            <div className="text-right">Valor</div>
+            <div />
+          </div>
+
+          {investmentReturns.map((entry) => (
+            <div
+              key={entry.id}
+              className="grid grid-cols-[28px_90px_1.6fr_1fr_60px] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
+            >
+              <input
+                type="checkbox"
+                checked={selectedReturnIds.has(entry.id)}
+                onChange={() => toggleReturnSelected(entry.id)}
+                aria-label="Selecionar rendimento"
+                className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+              />
+              <div className="text-[12.5px] font-medium text-[var(--text-tertiary)]">
+                {formatDate(entry.date)}
+              </div>
+              <div className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
+                {entry.note || "—"}
+              </div>
+              <div
+                className="font-display text-right text-[13.5px] font-bold tracking-tight tabular-nums"
+                style={{ color: "var(--chart-positive)" }}
+              >
+                +{formatCurrency(entry.amount, entry.currency)}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => startEditReturn(entry)}
+                  aria-label="Editar rendimento"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => requestDeleteReturn(entry)}
+                  aria-label="Excluir rendimento"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {investmentReturns.length === 0 && (
+            <EmptyState message="Nenhum rendimento lançado ainda." />
+          )}
         </div>
       </div>
 

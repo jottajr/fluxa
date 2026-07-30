@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#eeece6;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .dv-turn{padding:40px 44px 60px;border-bottom:1px solid rgba(0,0,0,.08)}
+  .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+  .dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+  .dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .dv-opts{display:flex;flex-direction:column;gap:32px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:9px}
+  .dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+  .dv-card{max-width:100%;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.08);overflow:hidden}
+  .dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+  .kpi-num{font-family:'Manrope',sans-serif;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+  .trend-up{color:oklch(56% 0.14 148)}
+  .trend-down{color:oklch(56% 0.18 25)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Dashboard — 3 direções visuais</span></div>
+  <div class="dv-opts">
+
+    <!-- OPTION 1A: Clean Grid (light-first, safe modern fintech) -->
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Clean Grid — cards claros, espaçoso</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#ffffff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navA}}" as="item" hint-placeholder-count="7">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:7px;height:7px;border-radius:2px;background:{{item.dotColorA}}"></div>{{item.label}}
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;padding:14px 12px;border-radius:12px;background:#f6f5f2;font:500 11.5px/1.4 'Inter',sans-serif;color:#8a8782">Cor de destaque personalizável pelo usuário — todo o sistema deriva de <b style="color:#151417">--accent</b>.</div>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Dashboard</div>
+                <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Visão geral das suas finanças</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:11px;padding:8px 14px;font:600 13px 'Inter',sans-serif;color:#151417">
+                  <span style="opacity:.4">‹</span>Julho 2026<span style="opacity:.4">›</span>
+                </div>
+                <div style="width:38px;height:38px;border-radius:50%;background:color-mix(in oklch,var(--accent) 18%,white);display:flex;align-items:center;justify-content:center;font:700 13px 'Inter',sans-serif;color:color-mix(in oklch,var(--accent) 70%,black)">RC</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:{{gapMd}}px">
+              <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                  <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">{{k.label}}</div>
+                  <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">{{k.value}}</div>
+                  <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="{{k.trendClass}}">{{k.arrow}} {{k.pct}}<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1.65fr 1fr;gap:{{gapMd}}px">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px">
+                <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417;margin-bottom:18px">Evolução do saldo</div>
+                <svg viewBox="0 0 560 160" style="width:100%;height:160px" preserveAspectRatio="none">
+                  <polyline points="0,120 80,100 160,110 240,70 320,80 400,40 480,55 560,20" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                  <polyline points="0,120 80,100 160,110 240,70 320,80 400,40 480,55 560,20 560,160 0,160" fill="color-mix(in oklch,var(--accent) 10%,transparent)" stroke="none"></polyline>
+                </svg>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px;display:flex;flex-direction:column">
+                <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417;margin-bottom:16px">Gastos por categoria</div>
+                <div style="display:flex;align-items:center;gap:20px">
+                  <div style="width:110px;height:110px;border-radius:50%;flex:none;background:conic-gradient(var(--accent) 0 32%, color-mix(in oklch,var(--accent) 55%,white) 32% 57%, color-mix(in oklch,var(--accent) 25%,white) 57% 82%, #ececea 82% 100%)"></div>
+                  <div style="display:flex;flex-direction:column;gap:9px;flex:1">
+                    <sc-for list="{{categories}}" as="c" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:8px;font:500 12.5px 'Inter',sans-serif;color:#57544f">
+                        <div style="width:8px;height:8px;border-radius:2px;background:{{c.dot}}"></div>{{c.name}}<span style="margin-left:auto;font-weight:700;color:#151417">{{c.pct}}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1.65fr 1fr;gap:{{gapMd}}px;flex:1">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                  <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417">Últimas transações</div>
+                  <div style="font:600 12.5px 'Inter',sans-serif;color:var(--accent)">Ver todas</div>
+                </div>
+                <sc-if value="{{empty}}">
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:36px 0">
+                    <div style="width:64px;height:64px;border-radius:16px;background:repeating-linear-gradient(45deg,#f2f1ed,#f2f1ed 8px,#ebeae5 8px,#ebeae5 16px);display:flex;align-items:center;justify-content:center;font:600 9px ui-monospace,monospace;color:#a8a59f;text-align:center">ilustração</div>
+                    <div style="font:600 13.5px 'Inter',sans-serif;color:#151417">Nenhuma transação neste período</div>
+                    <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:10px 18px;border-radius:10px;cursor:pointer">+ Adicionar transação</button>
+                  </div>
+                  <div style="display:flex;flex-direction:column" hint-placeholder-count="5">
+                    <sc-for list="{{transactions}}" as="t" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #f0efeb">
+                        <div style="width:36px;height:36px;border-radius:10px;background:{{t.avatarBg}};display:flex;align-items:center;justify-content:center;font:700 13px 'Inter',sans-serif;color:{{t.avatarColor}}">{{t.initial}}</div>
+                        <div style="flex:1">
+                          <div style="font:600 13.5px 'Inter',sans-serif;color:#151417;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.name}}</div>
+                          <div style="font:500 11.5px 'Inter',sans-serif;color:#9a9791">{{t.category}} · {{t.date}}</div>
+                        </div>
+                        <div class="kpi-num" style="font-size:14px;{{t.amountStyle}}">{{t.amount}}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:{{gapMd}}px">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px">
+                  <div style="font:700 14px 'Manrope',sans-serif;color:#151417;margin-bottom:14px">Metas</div>
+                  <sc-for list="{{goals}}" as="g" hint-placeholder-count="2">
+                    <div style="margin-bottom:14px">
+                      <div style="display:flex;justify-content:space-between;font:600 12.5px 'Inter',sans-serif;color:#151417;margin-bottom:6px">{{g.name}}<span style="color:#9a9791;font-weight:500">{{g.progress}}</span></div>
+                      <div style="height:7px;border-radius:4px;background:#f0efeb;overflow:hidden"><div style="height:100%;border-radius:4px;background:var(--accent);width:{{g.pct}}"></div></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px;flex:1">
+                  <div style="font:700 14px 'Manrope',sans-serif;color:#151417;margin-bottom:14px">Próximos pagamentos</div>
+                  <sc-if value="{{empty}}">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 0">
+                      <div style="width:44px;height:44px;border-radius:12px;background:repeating-linear-gradient(45deg,#f2f1ed,#f2f1ed 6px,#ebeae5 6px,#ebeae5 12px)"></div>
+                      <div style="font:600 12.5px 'Inter',sans-serif;color:#151417;text-align:center">Sem contas a vencer</div>
+                    </div>
+                    <sc-for list="{{payments}}" as="p" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid #f0efeb">
+                        <div>
+                          <div style="font:600 13px 'Inter',sans-serif;color:#151417">{{p.name}}</div>
+                          <div style="font:500 11px 'Inter',sans-serif;color:#9a9791">Vence dia {{p.due}}</div>
+                        </div>
+                        <div class="kpi-num" style="font-size:13px;color:#151417">{{p.amount}}</div>
+                      </div>
+                    </sc-for>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTION 1B: Dark Tech -->
+    
+
+    <!-- OPTION 1C: Editorial Split -->
+    <div class="dv-opt" id="1c">
+      
+      <div class="dv-card" style="width:1360px;background:#faf9f6;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:220px;flex:none;background:color-mix(in oklch,var(--accent) 92%,black);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            
+            <sc-for list="{{navC}}" as="item" hint-placeholder-count="7">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleC}}">{{item.label}}</div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:0;display:flex">
+            <div style="width:380px;flex:none;background:color-mix(in oklch,var(--accent) 8%,white);padding:40px 32px;display:flex;flex-direction:column;gap:28px;border-right:1px solid rgba(0,0,0,.06)">
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="font:600 12px 'Inter',sans-serif;color:#8a8782;text-transform:uppercase;letter-spacing:.06em">Saldo total</div>
+                  <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:9px;padding:5px 10px;font:600 11.5px 'Inter',sans-serif;color:#151417">Jul ‹›</div>
+                </div>
+                <div class="kpi-num" style="font-size:52px;color:#151417;margin-top:10px;line-height:1">R$ 24.850</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-top:12px;font:700 13px 'Inter',sans-serif" class="trend-up">↑ 8%<span style="color:#9a9791;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{kpisSmall}}" as="k" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;justify-content:between;justify-content:space-between;background:#fff;border-radius:12px;padding:16px 18px">
+                    <div>
+                      <div style="font:600 11.5px 'Inter',sans-serif;color:#8a8782;text-transform:uppercase;letter-spacing:.05em">{{k.label}}</div>
+                      <div class="kpi-num" style="font-size:20px;color:#151417;margin-top:6px">{{k.value}}</div>
+                    </div>
+                    <div style="font:700 12px 'Inter',sans-serif" class="{{k.trendClass}}">{{k.arrow}} {{k.pct}}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div>
+                <div style="font:700 13px 'Manrope',sans-serif;color:#151417;margin-bottom:12px">Metas</div>
+                <sc-for list="{{goals}}" as="g" hint-placeholder-count="2">
+                  <div style="margin-bottom:14px">
+                    <div style="display:flex;justify-content:space-between;font:600 12px 'Inter',sans-serif;color:#151417;margin-bottom:6px">{{g.name}}<span style="color:#9a9791;font-weight:500">{{g.progress}}</span></div>
+                    <div style="height:6px;border-radius:4px;background:rgba(0,0,0,.06);overflow:hidden"><div style="height:100%;border-radius:4px;background:var(--accent);width:{{g.pct}}"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:1;padding:40px 36px;display:flex;flex-direction:column;gap:{{gapMd}}px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="font:800 20px 'Manrope',sans-serif;color:#151417">Atividade recente</div>
+                <div style="display:flex;align-items:center;gap:20px;font:600 12.5px 'Inter',sans-serif;color:#9a9791">
+                  <span style="color:var(--accent)">Transações</span><span>Categorias</span><span>Pagamentos</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:8px 24px;flex:1">
+                <sc-if value="{{empty}}">
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:80px 0">
+                    <div style="width:72px;height:72px;border-radius:20px;background:repeating-linear-gradient(45deg,#f2f1ed,#f2f1ed 8px,#ebeae5 8px,#ebeae5 16px);display:flex;align-items:center;justify-content:center;font:600 9px ui-monospace,monospace;color:#a8a59f;text-align:center">ilustração</div>
+                    <div style="font:600 14px 'Inter',sans-serif;color:#151417">Nenhuma transação neste período</div>
+                    <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:11px 20px;border-radius:10px;cursor:pointer">+ Adicionar transação</button>
+                  </div>
+                  <div>
+                    <sc-for list="{{transactions}}" as="t" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;gap:14px;padding:16px 0;border-top:1px solid #f0efeb">
+                        <div style="width:40px;height:40px;border-radius:11px;background:{{t.avatarBg}};display:flex;align-items:center;justify-content:center;font:700 14px 'Inter',sans-serif;color:{{t.avatarColor}}">{{t.initial}}</div>
+                        <div style="flex:1">
+                          <div style="font:600 14px 'Inter',sans-serif;color:#151417">{{t.name}}</div>
+                          <div style="font:500 12px 'Inter',sans-serif;color:#9a9791">{{t.category}} · {{t.date}}</div>
+                        </div>
+                        <div class="kpi-num" style="font-size:15px;{{t.amountStyle}}">{{t.amount}}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:18px 24px">
+                <div style="font:700 13px 'Manrope',sans-serif;color:#151417;margin-bottom:10px">Próximos pagamentos</div>
+                <div style="display:flex;gap:16px">
+                  <sc-for list="{{payments}}" as="p" hint-placeholder-count="3">
+                    <div style="flex:1;background:color-mix(in oklch,var(--accent) 6%,white);border-radius:10px;padding:12px 14px">
+                      <div style="font:600 12.5px 'Inter',sans-serif;color:#151417">{{p.name}}</div>
+                      <div style="font:500 11px 'Inter',sans-serif;color:#9a9791;margin-top:2px">dia {{p.due}}</div>
+                      <div class="kpi-num" style="font-size:14px;color:#151417;margin-top:6px">{{p.amount}}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Experimente: "seguir com <a class="dv-oid" href="#1a">1a</a>" · "misturar layout de <a class="dv-oid" href="#1c">1c</a> com o tom escuro de <a class="dv-oid" href="#1b">1b</a>" · "ver estado vazio" (use o tweak) · "aplicar em Transações"</p>
+</section>
+
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Mescla de <a class="dv-oid" href="#1a">1a</a> + <a class="dv-oid" href="#1c">1c</a> — aguardando prints do app real para refinar</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Dashboard — aprovado, layout 1a puro</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#ffffff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navDash}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;padding:14px 12px;border-radius:12px;background:#f6f5f2;font:500 11.5px/1.4 'Inter',sans-serif;color:#8a8782">Cor de destaque personalizável pelo usuário — todo o sistema deriva de <b style="color:#151417">--accent</b>.</div>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Dashboard</div>
+                <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Visão geral das suas finanças</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:11px;padding:8px 14px;font:600 13px 'Inter',sans-serif;color:#151417">
+                  <span style="opacity:.4">‹</span>Julho 2026<span style="opacity:.4">›</span>
+                </div>
+                <div style="width:38px;height:38px;border-radius:50%;background:color-mix(in oklch,var(--accent) 18%,white);display:flex;align-items:center;justify-content:center;font:700 13px 'Inter',sans-serif;color:color-mix(in oklch,var(--accent) 70%,black)">RC</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:{{gapMd}}px">
+              <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                  <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">{{k.label}}</div>
+                  <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">{{k.value}}</div>
+                  <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="{{k.trendClass}}">{{k.arrow}} {{k.pct}}<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1.65fr 1fr;gap:{{gapMd}}px">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px">
+                <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417;margin-bottom:18px">Evolução do saldo</div>
+                <svg viewBox="0 0 560 160" style="width:100%;height:160px" preserveAspectRatio="none">
+                  <polyline points="0,120 80,100 160,110 240,70 320,80 400,40 480,55 560,20" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                  <polyline points="0,120 80,100 160,110 240,70 320,80 400,40 480,55 560,20 560,160 0,160" fill="color-mix(in oklch,var(--accent) 10%,transparent)" stroke="none"></polyline>
+                </svg>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px;display:flex;flex-direction:column">
+                <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417;margin-bottom:16px">Gastos por categoria</div>
+                <div style="display:flex;align-items:center;gap:20px">
+                  <div style="width:110px;height:110px;border-radius:50%;flex:none;background:conic-gradient(var(--accent) 0 32%, color-mix(in oklch,var(--accent) 55%,white) 32% 57%, color-mix(in oklch,var(--accent) 25%,white) 57% 82%, #ececea 82% 100%)"></div>
+                  <div style="display:flex;flex-direction:column;gap:9px;flex:1">
+                    <sc-for list="{{categories}}" as="c" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:8px;font:500 12.5px 'Inter',sans-serif;color:#57544f">
+                        <div style="width:8px;height:8px;border-radius:2px;background:{{c.dot}}"></div>{{c.name}}<span style="margin-left:auto;font-weight:700;color:#151417">{{c.pct}}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1.65fr 1fr;gap:{{gapMd}}px;flex:1">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                  <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417">Últimas transações</div>
+                  <div style="font:600 12.5px 'Inter',sans-serif;color:var(--accent)">Ver todas</div>
+                </div>
+                <sc-if value="{{empty}}">
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:36px 0">
+                    <div style="width:64px;height:64px;border-radius:16px;background:repeating-linear-gradient(45deg,#f2f1ed,#f2f1ed 8px,#ebeae5 8px,#ebeae5 16px);display:flex;align-items:center;justify-content:center;font:600 9px ui-monospace,monospace;color:#a8a59f;text-align:center">ilustração</div>
+                    <div style="font:600 13.5px 'Inter',sans-serif;color:#151417">Nenhuma transação neste período</div>
+                    <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:10px 18px;border-radius:10px;cursor:pointer">+ Adicionar transação</button>
+                  </div>
+                  <div style="display:flex;flex-direction:column">
+                    <sc-for list="{{transactions}}" as="t" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #f0efeb">
+                        <div style="width:36px;height:36px;border-radius:10px;background:{{t.avatarBg}};display:flex;align-items:center;justify-content:center;font:700 13px 'Inter',sans-serif;color:{{t.avatarColor}}">{{t.initial}}</div>
+                        <div style="flex:1">
+                          <div style="font:600 13.5px 'Inter',sans-serif;color:#151417;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.name}}</div>
+                          <div style="font:500 11.5px 'Inter',sans-serif;color:#9a9791">{{t.category}} · {{t.date}}</div>
+                        </div>
+                        <div class="kpi-num" style="font-size:14px;{{t.amountStyle}}">{{t.amount}}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:{{gapMd}}px">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px">
+                  <div style="font:700 14px 'Manrope',sans-serif;color:#151417;margin-bottom:14px">Metas</div>
+                  <sc-for list="{{goals}}" as="g" hint-placeholder-count="2">
+                    <div style="margin-bottom:14px">
+                      <div style="display:flex;justify-content:space-between;font:600 12.5px 'Inter',sans-serif;color:#151417;margin-bottom:6px">{{g.name}}<span style="color:#9a9791;font-weight:500">{{g.progress}}</span></div>
+                      <div style="height:7px;border-radius:4px;background:#f0efeb;overflow:hidden"><div style="height:100%;border-radius:4px;background:var(--accent);width:{{g.pct}}"></div></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px;flex:1">
+                  <div style="font:700 14px 'Manrope',sans-serif;color:#151417;margin-bottom:14px">Próximos pagamentos</div>
+                  <sc-if value="{{empty}}">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 0">
+                      <div style="width:44px;height:44px;border-radius:12px;background:repeating-linear-gradient(45deg,#f2f1ed,#f2f1ed 6px,#ebeae5 6px,#ebeae5 12px)"></div>
+                      <div style="font:600 12.5px 'Inter',sans-serif;color:#151417;text-align:center">Sem contas a vencer</div>
+                    </div>
+                    <sc-for list="{{payments}}" as="p" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid #f0efeb">
+                        <div>
+                          <div style="font:600 13px 'Inter',sans-serif;color:#151417">{{p.name}}</div>
+                          <div style="font:500 11px 'Inter',sans-serif;color:#9a9791">Vence dia {{p.due}}</div>
+                        </div>
+                        <div class="kpi-num" style="font-size:13px;color:#151417">{{p.amount}}</div>
+                      </div>
+                    </sc-for>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Transações — layout 1a puro</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Transações</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#ffffff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navTx}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Transações</div>
+                <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Visualize e lance suas movimentações financeiras</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:11px;padding:8px 14px;font:600 13px 'Inter',sans-serif;color:#151417">
+                  <span style="opacity:.4">‹</span>Julho 2026<span style="opacity:.4">›</span>
+                </div>
+                <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:10px 18px;border-radius:11px;cursor:pointer">+ Nova transação</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:{{gapMd}}px">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Entradas</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 12.400</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="trend-up">↑ 12%<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Saídas</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 7.230</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="trend-up">↓ 3%<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Saldo</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 24.850</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="trend-up">↑ 8%<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #f0efeb">
+                <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417">Todas as transações</div>
+                <div style="font:600 12.5px 'Inter',sans-serif;color:#57544f;display:flex;align-items:center;gap:6px">Filtros <span style="opacity:.4">⌄</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 0.9fr;gap:12px;padding:12px 24px;font:600 11px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #f0efeb">
+                <div>Descrição</div><div>Categoria</div><div>Forma de pagamento</div><div style="text-align:right">Valor</div><div>Status</div>
+              </div>
+              <sc-for list="{{transactions}}" as="t" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 0.9fr;gap:12px;align-items:center;padding:13px 24px;border-bottom:1px solid #f6f5f2">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:32px;height:32px;border-radius:9px;background:{{t.avatarBg}};display:flex;align-items:center;justify-content:center;font:700 12.5px 'Inter',sans-serif;color:{{t.avatarColor}};flex:none">{{t.initial}}</div>
+                    <div>
+                      <div style="font:600 13.5px 'Inter',sans-serif;color:#151417;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">{{t.name}}</div>
+                      <div style="font:500 11px 'Inter',sans-serif;color:#9a9791">{{t.date}}</div>
+                    </div>
+                  </div>
+                  <div style="font:500 13px 'Inter',sans-serif;color:#57544f">{{t.category}}</div>
+                  <div style="font:500 13px 'Inter',sans-serif;color:#57544f">Cartão</div>
+                  <div class="kpi-num" style="font-size:14px;text-align:right;{{t.amountStyle}}">{{t.amount}}</div>
+                  <div><span style="font:700 11px 'Inter',sans-serif;color:oklch(50% 0.1 148);background:oklch(94% 0.05 148);padding:4px 10px;border-radius:20px">Concluída</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dv-turn" id="t4">
+  <div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Demais telas — mesmo padrão visual (1a)</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="4a">
+      <div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Extrato</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navExtrato}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div>
+              <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Extrato</div>
+              <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Movimentações consolidadas com saldo acumulado</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:{{gapMd}}px">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Saldo inicial (01 Jul)</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 17.780</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Saldo atual</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 24.850</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="trend-up">↑ 8%<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden">
+              <div style="display:grid;grid-template-columns:110px 1.3fr 1fr 1fr;gap:12px;padding:12px 24px;font:600 11px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #f0efeb">
+                <div>Data</div><div>Descrição</div><div style="text-align:right">Valor</div><div style="text-align:right">Saldo</div>
+              </div>
+              <sc-for list="{{extrato}}" as="e" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:110px 1.3fr 1fr 1fr;gap:12px;align-items:center;padding:13px 24px;border-bottom:1px solid #f6f5f2">
+                  <div style="font:500 12.5px 'Inter',sans-serif;color:#9a9791">{{e.date}}</div>
+                  <div style="font:600 13.5px 'Inter',sans-serif;color:#151417;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{e.name}}</div>
+                  <div class="kpi-num" style="font-size:13.5px;text-align:right;{{e.amountStyle}}">{{e.amount}}</div>
+                  <div class="kpi-num" style="font-size:13.5px;text-align:right;color:#151417">{{e.running}}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="4b">
+      <div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Pagamentos</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navPag}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Pagamentos</div>
+                <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Contas fixas e recorrentes deste mês</div>
+              </div>
+              <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:10px 18px;border-radius:11px;cursor:pointer">+ Novo pagamento</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:{{gapMd}}px">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">A pagar</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 2.900</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Pagos</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 1.240</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Atrasados</div>
+                <div class="kpi-num" style="font-size:28px;color:oklch(56% 0.18 25);margin-top:10px">R$ 0</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;flex:1;padding:8px 0">
+              <sc-for list="{{paymentsFull}}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:16px;padding:15px 24px;border-bottom:1px solid #f6f5f2">
+                  <div style="width:38px;height:38px;border-radius:10px;background:color-mix(in oklch,var(--accent) 12%,white);flex:none"></div>
+                  <div style="flex:1">
+                    <div style="font:600 13.5px 'Inter',sans-serif;color:#151417">{{p.name}}</div>
+                    <div style="font:500 11.5px 'Inter',sans-serif;color:#9a9791">Vence dia {{p.due}} · {{p.recurring}}</div>
+                  </div>
+                  <div class="kpi-num" style="font-size:14px;color:#151417">{{p.amount}}</div>
+                  <span style="font:700 11px 'Inter',sans-serif;color:{{p.statusColor}};background:{{p.statusBg}};padding:5px 12px;border-radius:20px">{{p.status}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="4c">
+      <div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>Categorias</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navCat}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Categorias</div>
+                <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Orçamento por categoria neste mês</div>
+              </div>
+              <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:10px 18px;border-radius:11px;cursor:pointer">+ Nova categoria</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:{{gapMd}}px">
+              <sc-for list="{{catCards}}" as="c" hint-placeholder-count="6">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                    <div style="width:32px;height:32px;border-radius:9px;background:{{c.iconBg}}"></div>
+                    <div style="font:700 13.5px 'Inter',sans-serif;color:#151417">{{c.name}}</div>
+                  </div>
+                  <div class="kpi-num" style="font-size:20px;color:#151417">{{c.spent}}</div>
+                  <div style="font:500 11.5px 'Inter',sans-serif;color:#9a9791;margin:4px 0 10px">de {{c.budget}}</div>
+                  <div style="height:6px;border-radius:4px;background:#f0efeb;overflow:hidden"><div style="height:100%;border-radius:4px;background:{{c.barColor}};width:{{c.pct}}"></div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="4d">
+      <div class="dv-olabel"><a class="dv-oid" href="#4d">4d</a>Investimentos</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navInv}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div>
+              <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Investimentos</div>
+              <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Patrimônio investido e alocação</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:{{gapMd}}px">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Patrimônio total</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 58.320</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-top:8px;font:700 12px 'Inter',sans-serif" class="trend-up">↑ 4,2%<span style="color:#b3b0a9;font-weight:500;margin-left:2px">vs mês anterior</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Rentabilidade (mês)</div>
+                <div class="kpi-num" style="font-size:28px;color:oklch(56% 0.14 148);margin-top:10px">+ R$ 2.150</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 20px 18px">
+                <div style="font:600 12px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em">Aportes (mês)</div>
+                <div class="kpi-num" style="font-size:28px;color:#151417;margin-top:10px">R$ 1.500</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:{{gapMd}}px;flex:1">
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:24px">
+                <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417;margin-bottom:18px">Alocação</div>
+                <div style="display:flex;align-items:center;gap:20px">
+                  <div style="width:110px;height:110px;border-radius:50%;flex:none;background:conic-gradient(var(--accent) 0 45%, color-mix(in oklch,var(--accent) 55%,white) 45% 75%, color-mix(in oklch,var(--accent) 25%,white) 75% 100%)"></div>
+                  <div style="display:flex;flex-direction:column;gap:9px;flex:1">
+                    <sc-for list="{{allocation}}" as="a" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:8px;font:500 12.5px 'Inter',sans-serif;color:#57544f">
+                        <div style="width:8px;height:8px;border-radius:2px;background:{{a.dot}}"></div>{{a.name}}<span style="margin-left:auto;font-weight:700;color:#151417">{{a.pct}}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:0;overflow:hidden">
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;padding:14px 24px;font:600 11px 'Inter',sans-serif;color:#9a9791;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #f0efeb">
+                  <div>Ativo</div><div style="text-align:right">Valor</div><div style="text-align:right">Rentab.</div>
+                </div>
+                <sc-for list="{{positions}}" as="p" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;align-items:center;padding:13px 24px;border-bottom:1px solid #f6f5f2">
+                    <div style="font:600 13.5px 'Inter',sans-serif;color:#151417;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{p.name}}</div>
+                    <div class="kpi-num" style="font-size:13.5px;text-align:right;color:#151417">{{p.value}}</div>
+                    <div style="font:700 12.5px 'Inter',sans-serif;text-align:right" class="{{p.trendClass}}">{{p.pct}}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="4e">
+      <div class="dv-olabel"><a class="dv-oid" href="#4e">4e</a>Metas</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navMetas}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Metas</div>
+                <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Objetivos financeiros em andamento</div>
+              </div>
+              <button style="border:none;background:var(--accent);color:#fff;font:700 13px 'Inter',sans-serif;padding:10px 18px;border-radius:11px;cursor:pointer">+ Nova meta</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:{{gapMd}}px">
+              <sc-for list="{{goalsFull}}" as="g" hint-placeholder-count="3">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:22px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                    <div style="font:700 15px 'Manrope',sans-serif;color:#151417">{{g.name}}</div>
+                    <div style="font:600 12px 'Inter',sans-serif;color:#9a9791">até {{g.target}}</div>
+                  </div>
+                  <div class="kpi-num" style="font-size:24px;color:#151417">{{g.current}}<span style="font-size:14px;color:#9a9791;font-weight:600"> / {{g.goal}}</span></div>
+                  <div style="height:8px;border-radius:4px;background:#f0efeb;overflow:hidden;margin-top:14px"><div style="height:100%;border-radius:4px;background:var(--accent);width:{{g.pct}}"></div></div>
+                  <div style="font:600 12px 'Inter',sans-serif;color:var(--accent);margin-top:8px">{{g.pct}} concluído</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="4f">
+      <div class="dv-olabel"><a class="dv-oid" href="#4f">4f</a>Configurações</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navConfig}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px;max-width:720px">
+            <div>
+              <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Configurações</div>
+              <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Preferências da sua conta e workspace</div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:6px 0">
+              <sc-for list="{{settingsRows}}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #f6f5f2">
+                  <div>
+                    <div style="font:600 13.5px 'Inter',sans-serif;color:#151417">{{s.label}}</div>
+                    <div style="font:500 11.5px 'Inter',sans-serif;color:#9a9791;margin-top:2px">{{s.desc}}</div>
+                  </div>
+                  <div style="font:600 13px 'Inter',sans-serif;color:#57544f;display:flex;align-items:center;gap:6px">{{s.value}} <span style="opacity:.4">⌄</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 24px">
+              <div style="font:700 13.5px 'Inter',sans-serif;color:#151417;margin-bottom:12px">Cor de destaque</div>
+              <div style="display:flex;gap:10px">
+                <sc-for list="{{accentSwatches}}" as="sw" hint-placeholder-count="4">
+                  <div style="width:32px;height:32px;border-radius:50%;background:{{sw}};border:2px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.08);cursor:pointer"></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="4g">
+      <div class="dv-olabel"><a class="dv-oid" href="#4g">4g</a>Conheça o Fluxa</div>
+      <div class="dv-card" style="width:1360px;background:#fafaf9;--accent:{{accent}}">
+        <div style="display:flex;min-height:900px">
+          <div style="width:232px;flex:none;background:#fff;border-right:1px solid rgba(0,0,0,.06);padding:28px 20px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 8px 28px">
+              <div style="width:30px;height:30px;border-radius:9px;background:var(--accent)"></div>
+              <div style="font:800 18px 'Manrope',sans-serif;color:#151417;letter-spacing:-0.01em">Fluxa</div>
+            </div>
+            <sc-for list="{{navConhece}}" as="item" hint-placeholder-count="9">
+              <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font:600 13.5px 'Inter',sans-serif;{{item.activeStyleA}}">
+                <div style="width:16px;height:16px;border-radius:5px;background:{{item.iconBgA}};flex:none"></div>{{item.label}}
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:{{gapLg}}px">
+            <div>
+              <div style="font:800 22px 'Manrope',sans-serif;color:#151417">Conheça o Fluxa</div>
+              <div style="font:500 13px 'Inter',sans-serif;color:#9a9791;margin-top:2px">Recursos e novidades da plataforma</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:{{gapMd}}px">
+              <sc-for list="{{resources}}" as="r" hint-placeholder-count="4">
+                <div style="background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:22px">
+                  <div style="width:36px;height:36px;border-radius:10px;background:color-mix(in oklch,var(--accent) 12%,white);margin-bottom:14px"></div>
+                  <div style="font:700 14.5px 'Manrope',sans-serif;color:#151417;margin-bottom:6px">{{r.title}}</div>
+                  <div style="font:500 12.5px 'Inter',sans-serif;color:#9a9791;line-height:1.5">{{r.desc}}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1500,&quot;height&quot;:1000},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#7c5cff&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Tema&quot;,&quot;options&quot;:[&quot;#7c5cff&quot;,&quot;#0ea5e9&quot;,&quot;#16a34a&quot;,&quot;#e11d48&quot;]},&quot;showEmptyState&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Estados&quot;},&quot;compactSpacing&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accentColor ?? '#7c5cff';
+    const empty = this.props.showEmptyState ?? false;
+    const compact = this.props.compactSpacing ?? false;
+    const gapLg = compact ? 18 : 28;
+    const gapMd = compact ? 14 : 22;
+
+    const navLabels = ['Dashboard','Transações','Extrato','Pagamentos','Categorias','Investimentos','Metas','Configurações','Conheça o Fluxa'];
+    const mkNav = activeIdx => navLabels.map((label,i)=>({label,
+      activeStyleA: i===activeIdx ? `background:color-mix(in oklch,${accent} 12%,white);color:${accent}` : 'color:#6f6c67',
+      iconBgA: i===activeIdx ? accent : '#e3e1db'}));
+    const navDash = mkNav(0);
+    const navTx = mkNav(1);
+    const navA = navDash;
+    const navB = navLabels.map((label,i)=>({label,
+      activeStyleB: i===0 ? `background:color-mix(in oklch,${accent} 20%,black);color:#f5f4f2` : 'color:#6f6d68',
+      dotColorB: i===0 ? accent : 'transparent'}));
+    const navC = navLabels.map((label,i)=>({label,
+      activeStyleC: i===0 ? 'background:rgba(255,255,255,.16);color:#fff' : 'color:rgba(255,255,255,.6)'}));
+
+    const trendUp = 'trend-up', trendDown = 'trend-down';
+    const kpis = [
+      {label:'Saldo total', value:'R$ 24.850', arrow:'↑', pct:'8%', trendClass:trendUp},
+      {label:'Entradas', value:'R$ 12.400', arrow:'↑', pct:'12%', trendClass:trendUp},
+      {label:'Saídas', value:'R$ 7.230', arrow:'↓', pct:'3%', trendClass:trendUp},
+      {label:'Economia', value:'R$ 5.170', arrow:'↑', pct:'15%', trendClass:trendUp},
+    ];
+    const kpisSmall = kpis.slice(1);
+
+    const categories = [
+      {name:'Moradia', pct:'32%', dot: accent},
+      {name:'Alimentação', pct:'25%', dot: `color-mix(in oklch,${accent} 55%,white)`},
+      {name:'Transporte', pct:'25%', dot: `color-mix(in oklch,${accent} 25%,white)`},
+      {name:'Outros', pct:'18%', dot: '#d8d6d0'},
+    ];
+
+    const mkAvatar = (letter, tone) => ({
+      initial: letter,
+      avatarBg: `color-mix(in oklch, ${tone==='in'?accent:'#9a9791'} 14%, white)`,
+      avatarColor: `color-mix(in oklch, ${tone==='in'?accent:'#57544f'} 70%, black)`,
+    });
+    const transactions = [
+      {...mkAvatar('S','out'), name:'Supermercado Extra', category:'Alimentação', date:'22 Jul', amount:'– R$ 342,10', amountStyle:'color:#151417', amountStyleDark:'color:#e8e7e4'},
+      {...mkAvatar('U','in'), name:'Salário', category:'Receita', date:'20 Jul', amount:'+ R$ 8.200,00', amountStyle:'color:oklch(56% 0.14 148)', amountStyleDark:'color:oklch(70% 0.15 148)'},
+      {...mkAvatar('N','out'), name:'Netflix', category:'Assinaturas', date:'19 Jul', amount:'– R$ 44,90', amountStyle:'color:#151417', amountStyleDark:'color:#e8e7e4'},
+      {...mkAvatar('P','out'), name:'Posto Ipiranga', category:'Transporte', date:'17 Jul', amount:'– R$ 210,00', amountStyle:'color:#151417', amountStyleDark:'color:#e8e7e4'},
+      {...mkAvatar('F','in'), name:'Freelance design', category:'Receita', date:'15 Jul', amount:'+ R$ 1.500,00', amountStyle:'color:oklch(56% 0.14 148)', amountStyleDark:'color:oklch(70% 0.15 148)'},
+    ];
+
+    const goals = [
+      {name:'Reserva de emergência', progress:'68%', pct:'68%'},
+      {name:'Viagem', progress:'40%', pct:'40%'},
+    ];
+    const payments = [
+      {name:'Aluguel', due:'05', amount:'R$ 1.800,00'},
+      {name:'Internet', due:'10', amount:'R$ 120,00'},
+      {name:'Cartão de crédito', due:'15', amount:'R$ 980,00'},
+    ];
+
+    const navExtrato = mkNav(2), navPag = mkNav(3), navCat = mkNav(4), navInv = mkNav(5), navMetas = mkNav(6), navConfig = mkNav(7), navConhece = mkNav(8);
+
+    const extrato = [
+      {date:'22/07', name:'Supermercado Extra', amount:'– R$ 342,10', running:'R$ 24.850,00', amountStyle:'color:#151417'},
+      {date:'20/07', name:'Salário', amount:'+ R$ 8.200,00', running:'R$ 25.192,10', amountStyle:'color:oklch(56% 0.14 148)'},
+      {date:'19/07', name:'Netflix', amount:'– R$ 44,90', running:'R$ 16.992,10', amountStyle:'color:#151417'},
+      {date:'17/07', name:'Posto Ipiranga', amount:'– R$ 210,00', running:'R$ 17.037,00', amountStyle:'color:#151417'},
+      {date:'15/07', name:'Freelance design', amount:'+ R$ 1.500,00', running:'R$ 17.247,00', amountStyle:'color:oklch(56% 0.14 148)'},
+    ];
+
+    const paymentsFull = [
+      {name:'Aluguel', due:'05', recurring:'Mensal', amount:'R$ 1.800,00', status:'Pendente', statusColor:'#a3760a', statusBg:'#fdedc8'},
+      {name:'Internet', due:'10', recurring:'Mensal', amount:'R$ 120,00', status:'Pendente', statusColor:'#a3760a', statusBg:'#fdedc8'},
+      {name:'Cartão de crédito', due:'15', recurring:'Mensal', amount:'R$ 980,00', status:'Pendente', statusColor:'#a3760a', statusBg:'#fdedc8'},
+      {name:'Academia', due:'02', recurring:'Mensal', amount:'R$ 129,90', status:'Pago', statusColor:'oklch(50% 0.1 148)', statusBg:'oklch(94% 0.05 148)'},
+    ];
+
+    const catCards = [
+      {name:'Moradia', spent:'R$ 1.800', budget:'R$ 2.000', pct:'90%', iconBg: accent, barColor: accent},
+      {name:'Alimentação', spent:'R$ 980', budget:'R$ 1.200', pct:'82%', iconBg:`color-mix(in oklch,${accent} 55%,white)`, barColor:`color-mix(in oklch,${accent} 55%,white)`},
+      {name:'Transporte', spent:'R$ 410', budget:'R$ 600', pct:'68%', iconBg:`color-mix(in oklch,${accent} 25%,white)`, barColor:`color-mix(in oklch,${accent} 25%,white)`},
+      {name:'Assinaturas', spent:'R$ 145', budget:'R$ 200', pct:'72%', iconBg:'#d8d6d0', barColor:'#d8d6d0'},
+      {name:'Lazer', spent:'R$ 220', budget:'R$ 400', pct:'55%', iconBg: accent, barColor: accent},
+      {name:'Saúde', spent:'R$ 90', budget:'R$ 300', pct:'30%', iconBg:`color-mix(in oklch,${accent} 55%,white)`, barColor:`color-mix(in oklch,${accent} 55%,white)`},
+    ];
+
+    const allocation = [
+      {name:'Renda fixa', pct:'45%', dot: accent},
+      {name:'Ações', pct:'30%', dot: `color-mix(in oklch,${accent} 55%,white)`},
+      {name:'Fundos', pct:'25%', dot: `color-mix(in oklch,${accent} 25%,white)`},
+    ];
+    const positions = [
+      {name:'Tesouro Selic', value:'R$ 26.244', pct:'↑ 1,1%', trendClass:'trend-up'},
+      {name:'ITSA4', value:'R$ 9.800', pct:'↑ 3,4%', trendClass:'trend-up'},
+      {name:'BOVA11', value:'R$ 7.700', pct:'↓ 0,8%', trendClass:'trend-down'},
+      {name:'Fundo Multimercado', value:'R$ 14.576', pct:'↑ 0,6%', trendClass:'trend-up'},
+    ];
+
+    const goalsFull = [
+      {name:'Reserva de emergência', current:'R$ 13.600', goal:'R$ 20.000', pct:'68%', target:'Dez 2026'},
+      {name:'Viagem', current:'R$ 3.200', goal:'R$ 8.000', pct:'40%', target:'Jan 2027'},
+      {name:'Carro novo', current:'R$ 5.000', goal:'R$ 45.000', pct:'11%', target:'2028'},
+    ];
+
+    const settingsRows = [
+      {label:'Nome do workspace', desc:'Como seu espaço aparece no menu', value:'Pessoal'},
+      {label:'Moeda padrão', desc:'Moeda usada nos relatórios', value:'R$ Real'},
+      {label:'Fuso horário', desc:'Usado para datas de vencimento', value:'GMT-3'},
+      {label:'Notificações', desc:'Alertas de contas a vencer', value:'Ativado'},
+    ];
+    const accentSwatches = ['#7c5cff','#0ea5e9','#16a34a','#e11d48'];
+
+    const resources = [
+      {title:'Central de ajuda', desc:'Tutoriais e respostas para dúvidas comuns sobre o Fluxa.'},
+      {title:'Novidades', desc:'Veja o que mudou nas últimas atualizações do produto.'},
+      {title:'Atalhos de teclado', desc:'Navegue mais rápido entre transações e telas.'},
+      {title:'Fale com o suporte', desc:'Entre em contato com nossa equipe.'},
+    ];
+
+    return { accent, empty, gapLg, gapMd, navA, navB, navC, navDash, navTx, navExtrato, navPag, navCat, navInv, navMetas, navConfig, navConhece, kpis, kpisSmall, categories, transactions, goals, payments, extrato, paymentsFull, catCards, allocation, positions, goalsFull, settingsRows, accentSwatches, resources };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -16,6 +16,8 @@ import type {
   CardType,
   Category,
   Currency,
+  FinancialGoal,
+  FinancialGoalContribution,
   InvestmentCategory,
   InvestmentPosition,
   InvestmentRateUnit,
@@ -26,6 +28,11 @@ import type {
 } from "@/types";
 
 interface DeleteCategoryResult {
+  success: boolean;
+  reason?: string;
+}
+
+interface DeleteCardResult {
   success: boolean;
   reason?: string;
 }
@@ -172,6 +179,48 @@ function rowToBudgetGoal(row: BudgetGoalRow): BudgetGoal {
   };
 }
 
+interface FinancialGoalRow {
+  id: string;
+  name: string;
+  icon: string;
+  target_amount: number;
+  target_date: string | null;
+  currency: Currency;
+  note: string | null;
+}
+
+function rowToFinancialGoal(row: FinancialGoalRow): FinancialGoal {
+  return {
+    id: row.id,
+    name: row.name,
+    icon: row.icon,
+    targetAmount: Number(row.target_amount),
+    targetDate: row.target_date,
+    currency: row.currency,
+    note: row.note ?? "",
+  };
+}
+
+interface FinancialGoalContributionRow {
+  id: string;
+  goal_id: string;
+  date: string;
+  amount: number;
+  note: string | null;
+}
+
+function rowToFinancialGoalContribution(
+  row: FinancialGoalContributionRow,
+): FinancialGoalContribution {
+  return {
+    id: row.id,
+    goalId: row.goal_id,
+    date: row.date,
+    amount: Number(row.amount),
+    note: row.note ?? "",
+  };
+}
+
 interface FinanceDataContextValue {
   transactions: Transaction[];
   cards: Card[];
@@ -187,6 +236,7 @@ interface FinanceDataContextValue {
   deleteTransactions: (ids: string[]) => Promise<void>;
   addCard: (card: Card) => Promise<void>;
   updateCard: (id: string, updates: Partial<Omit<Card, "id">>) => Promise<void>;
+  deleteCard: (id: string) => Promise<DeleteCardResult>;
   addCategory: (category: Category) => Promise<void>;
   updateCategory: (
     id: string,
@@ -215,6 +265,23 @@ interface FinanceDataContextValue {
     updates: Partial<Omit<BudgetGoal, "id">>,
   ) => Promise<void>;
   deleteBudgetGoal: (id: string) => Promise<void>;
+  financialGoals: FinancialGoal[];
+  addFinancialGoal: (goal: FinancialGoal) => Promise<void>;
+  updateFinancialGoal: (
+    id: string,
+    updates: Partial<Omit<FinancialGoal, "id">>,
+  ) => Promise<void>;
+  deleteFinancialGoal: (id: string) => Promise<void>;
+  financialGoalContributions: FinancialGoalContribution[];
+  addFinancialGoalContribution: (
+    contribution: FinancialGoalContribution,
+  ) => Promise<void>;
+  updateFinancialGoalContribution: (
+    id: string,
+    updates: Partial<Omit<FinancialGoalContribution, "id">>,
+  ) => Promise<void>;
+  deleteFinancialGoalContribution: (id: string) => Promise<void>;
+  deleteFinancialGoalContributions: (ids: string[]) => Promise<void>;
 }
 
 const FinanceDataContext = createContext<FinanceDataContextValue | null>(null);
@@ -232,6 +299,10 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     InvestmentPosition[]
   >([]);
   const [budgetGoals, setBudgetGoals] = useState<BudgetGoal[]>([]);
+  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>([]);
+  const [financialGoalContributions, setFinancialGoalContributions] = useState<
+    FinancialGoalContribution[]
+  >([]);
 
   useEffect(() => {
     let active = true;
@@ -247,6 +318,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         investmentReturnsRes,
         investmentPositionsRes,
         budgetGoalsRes,
+        financialGoalsRes,
       ] = await Promise.all([
           supabase
             .from("categories")
@@ -282,6 +354,11 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
           supabase
             .from("budget_goals")
             .select("id, category_id, payment_method_id, monthly_limit")
+            .eq("profile_id", activeProfileId)
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("financial_goals")
+            .select("id, name, icon, target_amount, target_date, currency, note")
             .eq("profile_id", activeProfileId)
             .order("created_at", { ascending: true }),
         ]);
@@ -333,6 +410,31 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         setBudgetGoals(
           (budgetGoalsRes.data as BudgetGoalRow[]).map(rowToBudgetGoal),
         );
+      }
+
+      if (!financialGoalsRes.error && financialGoalsRes.data) {
+        const goals = (financialGoalsRes.data as FinancialGoalRow[]).map(
+          rowToFinancialGoal,
+        );
+        setFinancialGoals(goals);
+
+        if (goals.length > 0) {
+          const contributionsRes = await supabase
+            .from("financial_goal_contributions")
+            .select("id, goal_id, date, amount, note")
+            .in("goal_id", goals.map((g) => g.id))
+            .order("date", { ascending: false });
+
+          if (active && !contributionsRes.error && contributionsRes.data) {
+            setFinancialGoalContributions(
+              (contributionsRes.data as FinancialGoalContributionRow[]).map(
+                rowToFinancialGoalContribution,
+              ),
+            );
+          }
+        } else {
+          setFinancialGoalContributions([]);
+        }
       }
     }
 
@@ -477,6 +579,35 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
       );
     }
+  }
+
+  async function deleteCard(id: string): Promise<DeleteCardResult> {
+    const inUse = transactions.some((tx) => tx.paymentMethodId === id);
+    if (inUse) {
+      return {
+        success: false,
+        reason:
+          "Este cartão está sendo usado em transações. Reatribua essas transações antes de excluí-lo.",
+      };
+    }
+
+    const hasGoal = budgetGoals.some((g) => g.paymentMethodId === id);
+    if (hasGoal) {
+      return {
+        success: false,
+        reason:
+          "Este cartão está vinculado a uma meta. Remova ou reatribua a meta antes de excluí-lo.",
+      };
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.from("payment_methods").delete().eq("id", id);
+    if (error) {
+      return { success: false, reason: "Não foi possível excluir o cartão." };
+    }
+
+    setCards((prev) => prev.filter((c) => c.id !== id));
+    return { success: true };
   }
 
   async function addCategory(category: Category) {
@@ -753,6 +884,131 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function addFinancialGoal(goal: FinancialGoal) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("financial_goals")
+      .insert({
+        profile_id: activeProfileId,
+        name: goal.name,
+        icon: goal.icon,
+        target_amount: goal.targetAmount,
+        target_date: goal.targetDate,
+        currency: goal.currency,
+        note: goal.note || null,
+      })
+      .select("id, name, icon, target_amount, target_date, currency, note")
+      .single();
+
+    if (!error && data) {
+      setFinancialGoals((prev) => [
+        ...prev,
+        rowToFinancialGoal(data as FinancialGoalRow),
+      ]);
+    }
+  }
+
+  async function updateFinancialGoal(
+    id: string,
+    updates: Partial<Omit<FinancialGoal, "id">>,
+  ) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("financial_goals")
+      .update({
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.icon !== undefined && { icon: updates.icon }),
+        ...(updates.targetAmount !== undefined && {
+          target_amount: updates.targetAmount,
+        }),
+        ...(updates.targetDate !== undefined && { target_date: updates.targetDate }),
+        ...(updates.currency !== undefined && { currency: updates.currency }),
+        ...(updates.note !== undefined && { note: updates.note || null }),
+      })
+      .eq("id", id);
+
+    if (!error) {
+      setFinancialGoals((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+      );
+    }
+  }
+
+  async function deleteFinancialGoal(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("financial_goals").delete().eq("id", id);
+    if (!error) {
+      setFinancialGoals((prev) => prev.filter((g) => g.id !== id));
+      setFinancialGoalContributions((prev) => prev.filter((c) => c.goalId !== id));
+    }
+  }
+
+  async function addFinancialGoalContribution(contribution: FinancialGoalContribution) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("financial_goal_contributions")
+      .insert({
+        goal_id: contribution.goalId,
+        date: contribution.date,
+        amount: contribution.amount,
+        note: contribution.note || null,
+      })
+      .select("id, goal_id, date, amount, note")
+      .single();
+
+    if (!error && data) {
+      setFinancialGoalContributions((prev) => [
+        rowToFinancialGoalContribution(data as FinancialGoalContributionRow),
+        ...prev,
+      ]);
+    }
+  }
+
+  async function updateFinancialGoalContribution(
+    id: string,
+    updates: Partial<Omit<FinancialGoalContribution, "id">>,
+  ) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("financial_goal_contributions")
+      .update({
+        ...(updates.date !== undefined && { date: updates.date }),
+        ...(updates.amount !== undefined && { amount: updates.amount }),
+        ...(updates.note !== undefined && { note: updates.note || null }),
+      })
+      .eq("id", id);
+
+    if (!error) {
+      setFinancialGoalContributions((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      );
+    }
+  }
+
+  async function deleteFinancialGoalContribution(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("financial_goal_contributions")
+      .delete()
+      .eq("id", id);
+    if (!error) {
+      setFinancialGoalContributions((prev) => prev.filter((c) => c.id !== id));
+    }
+  }
+
+  async function deleteFinancialGoalContributions(ids: string[]) {
+    if (ids.length === 0) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("financial_goal_contributions")
+      .delete()
+      .in("id", ids);
+    if (!error) {
+      const idSet = new Set(ids);
+      setFinancialGoalContributions((prev) => prev.filter((c) => !idSet.has(c.id)));
+    }
+  }
+
   return (
     <FinanceDataContext.Provider
       value={{
@@ -767,6 +1023,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         deleteTransactions,
         addCard,
         updateCard,
+        deleteCard,
         addCategory,
         updateCategory,
         deleteCategory,
@@ -783,6 +1040,15 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         addBudgetGoal,
         updateBudgetGoal,
         deleteBudgetGoal,
+        financialGoals,
+        addFinancialGoal,
+        updateFinancialGoal,
+        deleteFinancialGoal,
+        financialGoalContributions,
+        addFinancialGoalContribution,
+        updateFinancialGoalContribution,
+        deleteFinancialGoalContribution,
+        deleteFinancialGoalContributions,
       }}
     >
       {children}

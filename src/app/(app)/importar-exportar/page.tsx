@@ -194,18 +194,18 @@ export default function ImportarExportarPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
+    <div className="mx-auto max-w-3xl space-y-7">
       <div>
-        <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
+        <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
           Importar e exportar
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Exporte suas transações em CSV/PDF ou importe um extrato em CSV.
+        <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
+          Exporte suas transações em CSV/PDF ou importe um extrato em CSV
         </p>
       </div>
 
-      <section className="tech-card space-y-5 rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-6 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      <section className="space-y-5 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
+        <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
           Exportar
         </h2>
 
@@ -222,26 +222,37 @@ export default function ImportarExportarPage() {
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-            <p className="text-sm text-slate-500 dark:text-slate-400">Entradas</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+          <div className="rounded-[11px] border border-[var(--border-subtle)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+              Entradas
+            </p>
+            <p
+              className="font-display mt-1.5 text-lg font-extrabold tracking-tight tabular-nums"
+              style={{ color: "var(--chart-positive)" }}
+            >
               {formatCurrency(totals.entradas)}
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-            <p className="text-sm text-slate-500 dark:text-slate-400">Saídas</p>
-            <p className="mt-1 text-xl font-semibold text-red-600 dark:text-red-400">
+          <div className="rounded-[11px] border border-[var(--border-subtle)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+              Saídas
+            </p>
+            <p
+              className="font-display mt-1.5 text-lg font-extrabold tracking-tight tabular-nums"
+              style={{ color: "var(--chart-negative)" }}
+            >
               {formatCurrency(totals.saidas)}
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-            <p className="text-sm text-slate-500 dark:text-slate-400">Saldo</p>
+          <div className="rounded-[11px] border border-[var(--border-subtle)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+              Saldo
+            </p>
             <p
-              className={`mt-1 text-xl font-semibold ${
-                totals.saldo >= 0
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-600 dark:text-red-400"
-              }`}
+              className="font-display mt-1.5 text-lg font-extrabold tracking-tight tabular-nums"
+              style={{
+                color: totals.saldo >= 0 ? "var(--chart-positive)" : "var(--chart-negative)",
+              }}
             >
               {formatCurrency(totals.saldo)}
             </p>
@@ -251,24 +262,24 @@ export default function ImportarExportarPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExportCSV}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-[11px] border border-[var(--border-subtle)] px-4 py-2.5 text-[13px] font-bold text-[var(--text-secondary)] hover:border-[var(--accent)]/40"
           >
             Exportar Excel (CSV)
           </button>
           <button
             onClick={handleExportPDF}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-[11px] border border-[var(--border-subtle)] px-4 py-2.5 text-[13px] font-bold text-[var(--text-secondary)] hover:border-[var(--accent)]/40"
           >
             Exportar PDF
           </button>
         </div>
       </section>
 
-      <section className="tech-card space-y-4 rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-6 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      <section className="space-y-4 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
+        <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
           Importar CSV
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm font-medium text-[var(--text-tertiary)]">
           O arquivo precisa ter colunas de Data, Descrição e Valor. Você revisa
           e ajusta a categoria de cada lançamento antes de confirmar.
         </p>
@@ -281,7 +292,7 @@ export default function ImportarExportarPage() {
         />
         <button
           onClick={() => importFileRef.current?.click()}
-          className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+          className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white"
         >
           Selecionar arquivo CSV
         </button>

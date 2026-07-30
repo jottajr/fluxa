@@ -43,10 +43,10 @@ function NavLinks({
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
               isActive
-                ? "btn-primary"
-                : "text-slate-600 hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] dark:text-slate-400 dark:hover:bg-[var(--accent)]/15 dark:hover:text-[var(--accent)]"
+                ? "bg-[var(--accent)]/12 text-[var(--accent)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)]"
             }`}
           >
             <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -69,7 +69,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:flex dark:border-slate-800 dark:bg-slate-900">
+      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--surface)] md:flex">
         <NavLinks pathname={pathname} />
       </aside>
 
@@ -80,7 +80,7 @@ export function Sidebar({
             onClick={onClose}
             aria-hidden="true"
           />
-          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl">
             <NavLinks pathname={pathname} onNavigate={onClose} />
           </aside>
         </div>

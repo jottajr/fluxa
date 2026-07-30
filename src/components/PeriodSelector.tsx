@@ -33,6 +33,12 @@ function toISODate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+const SUB_PERIOD_COUNT: Partial<Record<PeriodType, number>> = {
+  mensal: 12,
+  trimestral: 4,
+  semestral: 2,
+};
+
 export function PeriodSelector({
   periodType,
   onPeriodTypeChange,
@@ -44,6 +50,8 @@ export function PeriodSelector({
   customRange,
   onCustomRangeChange,
   align = "left",
+  tabs,
+  showSteppers = false,
 }: {
   periodType: PeriodType;
   onPeriodTypeChange: (type: PeriodType) => void;
@@ -55,6 +63,8 @@ export function PeriodSelector({
   customRange: DateRange | null;
   onCustomRangeChange: (range: DateRange) => void;
   align?: "left" | "right";
+  tabs?: PeriodType[];
+  showSteppers?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [draftRange, setDraftRange] = useState<PickerRange | undefined>(undefined);
@@ -96,18 +106,64 @@ export function PeriodSelector({
     setOpen(false);
   }
 
+  function handleStep(direction: 1 | -1) {
+    if (periodType === "personalizado") return;
+    const count = SUB_PERIOD_COUNT[periodType];
+    if (!count) {
+      onYearChange(year + direction);
+      return;
+    }
+    const next = subPeriod + direction;
+    if (next < 1) {
+      onYearChange(year - 1);
+      onSubPeriodChange(count);
+    } else if (next > count) {
+      onYearChange(year + 1);
+      onSubPeriodChange(1);
+    } else {
+      onSubPeriodChange(next);
+    }
+  }
+
+  const visibleTabs = tabs ? PERIOD_TABS.filter((tab) => tabs.includes(tab.value)) : PERIOD_TABS;
   const label = formatPeriodLabel(periodType, year, subPeriod, customRange);
 
   return (
-    <div className="relative inline-block" ref={anchorRef}>
+    <div
+      className={
+        showSteppers
+          ? "inline-flex items-center gap-1 rounded-[11px] border border-[var(--border-subtle)] bg-[var(--surface)] py-1.5 pl-1.5 pr-2"
+          : "inline-flex items-center gap-1"
+      }
+    >
+      {showSteppers && (
+        <button
+          type="button"
+          onClick={() => handleStep(-1)}
+          disabled={periodType === "personalizado"}
+          aria-label="Período anterior"
+          className="rounded-md p-1 text-[var(--text-tertiary)] opacity-60 hover:text-[var(--accent)] hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-20"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+            <path d="M12.5 5L7.5 10L12.5 15" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
+      <div className="relative inline-block" ref={anchorRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center gap-1.5 border-b-[1.5px] py-1 text-sm font-semibold transition-colors ${
-          open
-            ? "border-[var(--accent)] text-[var(--accent)]"
-            : "border-transparent text-slate-800 hover:text-[var(--accent)] dark:text-slate-100"
-        }`}
+        className={
+          showSteppers
+            ? `inline-flex items-center gap-1.5 text-sm font-semibold transition-colors ${
+                open ? "text-[var(--accent)]" : "text-[var(--foreground)]"
+              }`
+            : `inline-flex items-center gap-1.5 border-b-[1.5px] py-1 text-sm font-semibold transition-colors ${
+                open
+                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  : "border-transparent text-slate-800 hover:text-[var(--accent)] dark:text-slate-100"
+              }`
+        }
       >
         <CalendarIcon
           className={`h-3.5 w-3.5 ${open ? "text-[var(--accent)]" : "text-slate-400 dark:text-slate-500"}`}
@@ -125,7 +181,7 @@ export function PeriodSelector({
           } ${periodType === "personalizado" ? "w-[min(94vw,540px)]" : ""}`}
         >
           <div className="mb-4 flex flex-nowrap items-center gap-4 whitespace-nowrap border-b border-slate-100 pb-3 dark:border-slate-800">
-            {PERIOD_TABS.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
@@ -233,6 +289,20 @@ export function PeriodSelector({
             </div>
           )}
         </div>
+      )}
+      </div>
+      {showSteppers && (
+        <button
+          type="button"
+          onClick={() => handleStep(1)}
+          disabled={periodType === "personalizado"}
+          aria-label="Próximo período"
+          className="rounded-md p-1 text-[var(--text-tertiary)] opacity-60 hover:text-[var(--accent)] hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-20"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+            <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       )}
     </div>
   );

@@ -16,7 +16,7 @@ export function AppShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Header
         userName={userName}
         userEmail={userEmail}

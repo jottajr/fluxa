@@ -51,16 +51,16 @@ export function Header({
   const initial = userName.charAt(0).toUpperCase() || "?";
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-900">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 sm:px-6">
       <div className="flex items-center gap-2">
         <button
           onClick={onMenuClick}
           aria-label="Abrir menu"
-          className="-ml-1.5 rounded-md p-1.5 text-slate-600 hover:bg-slate-100 md:hidden dark:text-slate-300 dark:hover:bg-slate-800"
+          className="-ml-1.5 rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 md:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>
-        <span className="flex items-center gap-1.5 text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <span className="flex items-center gap-1.5 font-display text-lg font-extrabold text-[var(--foreground)]">
           <img src="/fluxa-icon.png" alt="" className="h-7 w-7" />
           Fluxa
         </span>
@@ -76,21 +76,27 @@ export function Header({
             className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${
               isAccountSectionActive
                 ? "ring-1 ring-[var(--accent)]"
-                : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                : "hover:bg-[var(--accent)]/10"
             }`}
           >
-            <span className="btn-primary flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold">
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold"
+              style={{
+                backgroundColor: "color-mix(in oklch, var(--accent) 18%, white)",
+                color: "color-mix(in oklch, var(--accent) 70%, black)",
+              }}
+            >
               {initial}
             </span>
-            <span className="hidden text-sm font-medium text-slate-900 sm:inline dark:text-slate-100">
+            <span className="hidden text-sm font-medium text-[var(--foreground)] sm:inline">
               {userName}
             </span>
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-56 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+            <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] py-1 shadow-lg">
+              <div className="border-b border-[var(--border-subtle)] px-3 py-2">
+                <p className="truncate text-xs text-[var(--text-tertiary)]">
                   {userEmail}
                 </p>
               </div>
@@ -103,8 +109,8 @@ export function Header({
                     onClick={() => setMenuOpen(false)}
                     className={`block px-3 py-2 text-sm ${
                       isActive
-                        ? "btn-primary"
-                        : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                        ? "bg-[var(--accent)]/12 text-[var(--accent)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--accent)]/10"
                     }`}
                   >
                     {link.label}

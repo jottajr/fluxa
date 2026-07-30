@@ -7,7 +7,6 @@ import {
   type DateRange,
   type PeriodType,
   defaultSubPeriodFor,
-  formatPeriodLabel,
   getPeriodRange,
 } from "@/lib/period";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -70,117 +69,107 @@ export default function ExtratoPage() {
   }, [transactions, periodRange, statusFilter, categoryFilter, paymentMethodFilter]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
-          Extrato - {formatPeriodLabel(periodType, year, subPeriod, customRange)}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Consulte todos os lançamentos do período, de acordo com os filtros.
-        </p>
+    <div className="mx-auto max-w-6xl space-y-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
+            Extrato
+          </h1>
+          <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
+            Consulte todos os lançamentos do período, de acordo com os filtros
+          </p>
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <PeriodSelector
+            periodType={periodType}
+            onPeriodTypeChange={handlePeriodTypeChange}
+            subPeriod={subPeriod}
+            onSubPeriodChange={setSubPeriod}
+            year={year}
+            onYearChange={setYear}
+            years={years}
+            customRange={customRange}
+            onCustomRangeChange={setCustomRange}
+            align="right"
+            showSteppers
+          />
+          <TransactionFiltersDrawer
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            categoryFilter={categoryFilter}
+            onCategoryFilterChange={setCategoryFilter}
+            categories={categories}
+            paymentMethodFilter={paymentMethodFilter}
+            onPaymentMethodFilterChange={setPaymentMethodFilter}
+            cards={cards}
+            genericPaymentMethods={genericPaymentMethods}
+          />
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <PeriodSelector
-          periodType={periodType}
-          onPeriodTypeChange={handlePeriodTypeChange}
-          subPeriod={subPeriod}
-          onSubPeriodChange={setSubPeriod}
-          year={year}
-          onYearChange={setYear}
-          years={years}
-          customRange={customRange}
-          onCustomRangeChange={setCustomRange}
-        />
+      <div className="overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]">
+        <div className="grid grid-cols-[100px_1.4fr_1fr_1fr_0.9fr_0.8fr] gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+          <div>Data</div>
+          <div>Descrição</div>
+          <div>Categoria</div>
+          <div>Forma de pagamento</div>
+          <div className="text-right">Valor</div>
+          <div>Status</div>
+        </div>
 
-        <TransactionFiltersDrawer
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          categoryFilter={categoryFilter}
-          onCategoryFilterChange={setCategoryFilter}
-          categories={categories}
-          paymentMethodFilter={paymentMethodFilter}
-          onPaymentMethodFilterChange={setPaymentMethodFilter}
-          cards={cards}
-          genericPaymentMethods={genericPaymentMethods}
-        />
-      </div>
+        {filtered.map((tx) => (
+          <div
+            key={tx.id}
+            className="grid grid-cols-[100px_1.4fr_1fr_1fr_0.9fr_0.8fr] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
+          >
+            <div className="text-[12.5px] font-medium text-[var(--text-tertiary)]">
+              {formatDate(tx.date)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
+                {tx.description}
+                {tx.recurring && (
+                  <span className="ml-2 rounded bg-[var(--background)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+                    recorrente
+                  </span>
+                )}
+                {tx.totalInstallments && (
+                  <span className="ml-2 rounded bg-[var(--background)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+                    {tx.installmentNumber}/{tx.totalInstallments}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+              {tx.categoryId && categoriesById.get(tx.categoryId)
+                ? `${categoriesById.get(tx.categoryId)!.icon} ${categoriesById.get(tx.categoryId)!.name}`
+                : "—"}
+            </div>
+            <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+              {getPaymentMethodLabel(tx.paymentMethodId, cards, genericPaymentMethods)}
+            </div>
+            <div
+              className="font-display text-right text-[13.5px] font-bold tracking-tight tabular-nums"
+              style={{
+                color:
+                  tx.type === "entrada"
+                    ? "var(--chart-positive)"
+                    : "var(--chart-negative)",
+              }}
+            >
+              {tx.type === "entrada" ? "+" : "-"}
+              {formatCurrency(tx.amount, tx.currency)}
+            </div>
+            <div>
+              <StatusBadge status={tx.status} />
+            </div>
+          </div>
+        ))}
 
-      <div className="tech-card overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 dark:border-slate-800 dark:bg-slate-900">
-        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-          <thead className="bg-slate-50 dark:bg-slate-950">
-            <tr>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Data
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Descrição
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Categoria
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Forma de pagamento
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Valor
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filtered.map((tx) => (
-              <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                <td className="whitespace-nowrap px-4 py-3 text-center text-sm text-slate-600 dark:text-slate-400">
-                  {formatDate(tx.date)}
-                </td>
-                <td className="px-4 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
-                  {tx.description}
-                  {tx.recurring && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                      recorrente
-                    </span>
-                  )}
-                  {tx.totalInstallments && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                      {tx.installmentNumber}/{tx.totalInstallments}
-                    </span>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-center text-sm text-slate-600 dark:text-slate-400">
-                  {tx.categoryId && categoriesById.get(tx.categoryId)
-                    ? `${categoriesById.get(tx.categoryId)!.icon} ${categoriesById.get(tx.categoryId)!.name}`
-                    : "—"}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-center text-sm text-slate-600 dark:text-slate-400">
-                  {getPaymentMethodLabel(tx.paymentMethodId, cards, genericPaymentMethods)}
-                </td>
-                <td
-                  className={`whitespace-nowrap px-4 py-3 text-center text-sm font-semibold ${
-                    tx.type === "entrada"
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {tx.type === "entrada" ? "+" : "-"}
-                  {formatCurrency(tx.amount, tx.currency)}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-center">
-                  <StatusBadge status={tx.status} />
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6}>
-                  <EmptyState message="Nenhuma transação encontrada neste período." />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {filtered.length === 0 && (
+          <EmptyState message="Nenhuma transação encontrada neste período." />
+        )}
       </div>
     </div>
   );

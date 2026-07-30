@@ -6,20 +6,43 @@ import { ACCENT_COLOR_OPTIONS, useAccentColor } from "@/lib/accent-color-context
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const labelClass = "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300";
-const cardClass =
-  "tech-card space-y-4 rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-6 dark:border-slate-800 dark:bg-slate-900";
+const cardClass = "rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]";
+const rowClass =
+  "flex flex-wrap items-center justify-between gap-4 border-b border-[var(--background)] px-6 py-4 last:border-b-0";
+
+function SettingsRow({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={rowClass}>
+      <div>
+        <p className="text-[13.5px] font-semibold text-[var(--foreground)]">{label}</p>
+        <p className="mt-0.5 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+          {description}
+        </p>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 function SaveButton({ saved, label }: { saved: boolean; label: string }) {
   return (
     <div className="flex items-center gap-3">
       <button
         type="submit"
-        className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+        className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white"
       >
         {label}
       </button>
       {saved && (
-        <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+        <span className="text-sm font-medium" style={{ color: "var(--chart-positive)" }}>
           ✓ Salvo
         </span>
       )}
@@ -92,79 +115,178 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
+    <div className="mx-auto max-w-3xl space-y-7">
       <div>
-        <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
+        <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
           Configurações
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Gerencie seu perfil, preferências e notificações.
+        <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
+          Preferências da sua conta e workspace
         </p>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-300">
+      <div
+        className="rounded-[14px] border px-4 py-3 text-sm"
+        style={{
+          borderColor: "color-mix(in oklch, var(--accent) 30%, transparent)",
+          backgroundColor: "color-mix(in oklch, var(--accent) 8%, transparent)",
+          color: "var(--foreground)",
+        }}
+      >
         Tela de demonstração — as alterações ficam só nesta sessão, ainda não
         são salvas de verdade nem aplicadas ao restante do app.
       </div>
 
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Perfil
-        </h2>
-        <form onSubmit={handleSaveProfile} className="space-y-4">
-          <div>
-            <label className={labelClass}>Nome</label>
+      <form onSubmit={handleSaveProfile}>
+        <div className={cardClass}>
+          <SettingsRow label="Nome" description="Como você aparece no app">
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} max-w-[220px]`}
             />
-          </div>
-          <div>
-            <label className={labelClass}>E-mail</label>
+          </SettingsRow>
+          <SettingsRow label="E-mail" description="Usado para acesso e notificações">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} max-w-[260px]`}
             />
-          </div>
-          <SaveButton saved={profileSaved} label="Salvar perfil" />
-        </form>
-      </section>
-
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Aparência
-        </h2>
-        <div>
-          <label className={labelClass}>Cor de destaque</label>
-          <div className="flex gap-3">
-            {ACCENT_COLOR_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setAccentColor(option.value)}
-                aria-label={option.label}
-                aria-pressed={accentColor === option.value}
-                className={`h-8 w-8 rounded-full transition-shadow ${
-                  accentColor === option.value
-                    ? "ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900"
-                    : ""
-                }`}
-                style={{ backgroundColor: option.swatch }}
-              />
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-            Aplica nos botões principais, no item ativo do menu e no seu avatar.
-          </p>
+          </SettingsRow>
         </div>
-      </section>
+        <div className="mt-4">
+          <SaveButton saved={profileSaved} label="Salvar perfil" />
+        </div>
+      </form>
 
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      <div className={cardClass + " p-6"}>
+        <p className="font-display mb-3 text-sm font-bold text-[var(--foreground)]">
+          Cor de destaque
+        </p>
+        <div className="flex gap-3">
+          {ACCENT_COLOR_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setAccentColor(option.value)}
+              aria-label={option.label}
+              aria-pressed={accentColor === option.value}
+              className="h-8 w-8 rounded-full border-2 border-[var(--surface)] transition-shadow"
+              style={{
+                backgroundColor: option.swatch,
+                boxShadow:
+                  accentColor === option.value
+                    ? "0 0 0 2px var(--accent)"
+                    : "0 0 0 2px rgba(0,0,0,.08)",
+              }}
+            />
+          ))}
+        </div>
+        <p className="mt-3 text-xs font-medium text-[var(--text-tertiary)]">
+          Aplica nos botões principais, no item ativo do menu e no seu avatar.
+        </p>
+      </div>
+
+      <form onSubmit={handleSavePreferences}>
+        <div className={cardClass}>
+          <SettingsRow label="Moeda padrão" description="Moeda usada nos relatórios">
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className={`${inputClass} max-w-[180px]`}
+            >
+              <option value="BRL">Real (R$)</option>
+              <option value="USD">Dólar (US$)</option>
+              <option value="EUR">Euro (€)</option>
+            </select>
+          </SettingsRow>
+          <SettingsRow label="Formato de número" description="Como os valores são exibidos">
+            <select
+              value={numberFormat}
+              onChange={(e) => setNumberFormat(e.target.value)}
+              className={`${inputClass} max-w-[220px]`}
+            >
+              <option value="pt-BR">1.234,56 (padrão Brasil)</option>
+              <option value="en-US">1,234.56 (padrão EUA)</option>
+            </select>
+          </SettingsRow>
+          <SettingsRow
+            label="Dia de início do mês financeiro"
+            description="Útil se você recebe salário no meio do mês"
+          >
+            <input
+              type="number"
+              min={1}
+              max={28}
+              value={monthStartDay}
+              onChange={(e) => setMonthStartDay(e.target.value)}
+              className={`${inputClass} max-w-[100px]`}
+            />
+          </SettingsRow>
+        </div>
+        <div className="mt-4">
+          <SaveButton saved={preferencesSaved} label="Salvar preferências" />
+        </div>
+      </form>
+
+      <form onSubmit={handleSaveNotifications}>
+        <div className={cardClass}>
+          <SettingsRow
+            label="Fatura próxima do vencimento"
+            description="Mostra um alerta na aba Pagamentos antes do vencimento"
+          >
+            <div className="flex items-center gap-3">
+              {notifyDueSoon && (
+                <input
+                  type="number"
+                  min={1}
+                  max={15}
+                  value={dueSoonDays}
+                  onChange={(e) => setDueSoonDays(e.target.value)}
+                  className={`${inputClass} max-w-[70px]`}
+                  aria-label="Dias de antecedência"
+                />
+              )}
+              <input
+                type="checkbox"
+                checked={notifyDueSoon}
+                onChange={(e) => setNotifyDueSoon(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+              />
+            </div>
+          </SettingsRow>
+          <SettingsRow
+            label="Fatura em atraso"
+            description="Mostra um alerta na aba Pagamentos quando houver fatura atrasada"
+          >
+            <input
+              type="checkbox"
+              checked={notifyOverdue}
+              onChange={(e) => setNotifyOverdue(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Notificações por e-mail"
+            description="Envia um resumo por e-mail (indisponível nesta demonstração)"
+          >
+            <input
+              type="checkbox"
+              checked={notifyEmail}
+              onChange={(e) => setNotifyEmail(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+            />
+          </SettingsRow>
+        </div>
+        <div className="mt-4">
+          <SaveButton saved={notificationsSaved} label="Salvar notificações" />
+        </div>
+      </form>
+
+      <div className={cardClass + " p-6"}>
+        <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
           Segurança
         </h2>
         <form onSubmit={handleSavePassword} className="space-y-4">
@@ -199,131 +321,13 @@ export default function ConfiguracoesPage() {
             />
           </div>
           {passwordError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+            <p className="text-sm" style={{ color: "var(--chart-negative)" }}>
+              {passwordError}
+            </p>
           )}
           <SaveButton saved={passwordSaved} label="Salvar senha" />
         </form>
-      </section>
-
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Preferências financeiras
-        </h2>
-        <form onSubmit={handleSavePreferences} className="space-y-4">
-          <div>
-            <label className={labelClass}>Moeda padrão</label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className={inputClass}
-            >
-              <option value="BRL">Real (R$)</option>
-              <option value="USD">Dólar (US$)</option>
-              <option value="EUR">Euro (€)</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Formato de número</label>
-            <select
-              value={numberFormat}
-              onChange={(e) => setNumberFormat(e.target.value)}
-              className={inputClass}
-            >
-              <option value="pt-BR">1.234,56 (padrão Brasil)</option>
-              <option value="en-US">1,234.56 (padrão EUA)</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Dia de início do mês financeiro</label>
-            <input
-              type="number"
-              min={1}
-              max={28}
-              value={monthStartDay}
-              onChange={(e) => setMonthStartDay(e.target.value)}
-              className={`${inputClass} max-w-[140px]`}
-            />
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-              Útil se você recebe salário no meio do mês e quer que os
-              relatórios sigam esse ciclo em vez do mês do calendário.
-            </p>
-          </div>
-          <SaveButton saved={preferencesSaved} label="Salvar preferências" />
-        </form>
-      </section>
-
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Notificações e alertas
-        </h2>
-        <form onSubmit={handleSaveNotifications} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Fatura próxima do vencimento
-              </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Mostra um alerta na aba Pagamentos antes do vencimento.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifyDueSoon}
-              onChange={(e) => setNotifyDueSoon(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-            />
-          </div>
-          {notifyDueSoon && (
-            <div className="pl-0">
-              <label className={labelClass}>Avisar com quantos dias de antecedência</label>
-              <input
-                type="number"
-                min={1}
-                max={15}
-                value={dueSoonDays}
-                onChange={(e) => setDueSoonDays(e.target.value)}
-                className={`${inputClass} max-w-[140px]`}
-              />
-            </div>
-          )}
-
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Fatura em atraso
-              </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Mostra um alerta na aba Pagamentos quando houver fatura atrasada.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifyOverdue}
-              onChange={(e) => setNotifyOverdue(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-            />
-          </div>
-
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Notificações por e-mail
-              </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Envia um resumo por e-mail (indisponível nesta demonstração).
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifyEmail}
-              onChange={(e) => setNotifyEmail(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
-            />
-          </div>
-
-          <SaveButton saved={notificationsSaved} label="Salvar notificações" />
-        </form>
-      </section>
+      </div>
     </div>
   );
 }

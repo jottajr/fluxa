@@ -27,6 +27,8 @@ const STATUS_CLASSES: Record<string, string> = {
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
 };
 
+const cardClass = "rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]";
+
 export default function FeedbackPage() {
   const { feedback, addFeedback } = useFeedback();
   const [type, setType] = useState<FeedbackType>("dica");
@@ -43,18 +45,18 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
+    <div className="mx-auto max-w-3xl space-y-7">
       <div>
-        <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
+        <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
           Feedback
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
           Manda uma dica, um erro que encontrou ou uma sugestão. Só você vê
-          essa caixa.
+          essa caixa
         </p>
       </div>
 
-      <div className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-6 dark:border-slate-800 dark:bg-slate-900">
+      <div className={`${cardClass} p-6`}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-2">
             {TYPE_OPTIONS.map((option) => (
@@ -62,10 +64,10 @@ export default function FeedbackPage() {
                 key={option.value}
                 type="button"
                 onClick={() => setType(option.value)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                className={`rounded-[11px] px-3.5 py-1.5 text-[13px] font-bold ${
                   type === option.value
-                    ? "btn-primary"
-                    : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    ? "bg-[var(--accent)] text-white"
+                    : "border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40"
                 }`}
               >
                 {option.label}
@@ -83,12 +85,12 @@ export default function FeedbackPage() {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+              className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white"
             >
               Enviar feedback
             </button>
             {sent && (
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="text-sm font-medium" style={{ color: "var(--chart-positive)" }}>
                 ✓ Enviado
               </span>
             )}
@@ -96,32 +98,29 @@ export default function FeedbackPage() {
         </form>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      <div className="space-y-4">
+        <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
           Seu histórico
         </h2>
         {feedback.length === 0 && (
-          <p className="text-sm text-slate-400 dark:text-slate-500">
+          <p className="text-sm text-[var(--text-tertiary)]">
             Você ainda não enviou nenhum feedback.
           </p>
         )}
         {feedback.map((entry) => (
-          <div
-            key={entry.id}
-            className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-4 dark:border-slate-800 dark:bg-slate-900"
-          >
+          <div key={entry.id} className={`${cardClass} p-5`}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
                 {TYPE_OPTIONS.find((o) => o.value === entry.type)?.label} ·{" "}
                 {formatDate(entry.createdAt)}
               </span>
               <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[entry.status]}`}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_CLASSES[entry.status]}`}
               >
                 {STATUS_LABELS[entry.status]}
               </span>
             </div>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+            <p className="mt-2 text-sm font-medium text-[var(--text-secondary)]">
               {entry.message}
             </p>
           </div>

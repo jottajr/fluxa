@@ -1,11 +1,7 @@
-const bodyText = "text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300";
-const panel =
-  "dark:rounded-2xl dark:border dark:border-slate-800 dark:bg-slate-900/60 dark:p-8 dark:shadow-lg dark:shadow-black/20";
-const sectionSpacing = `border-t border-slate-200 pt-10 dark:border-t dark:pt-8 ${panel}`;
-const sectionTitle =
-  "text-2xl font-bold text-[var(--accent)] sm:text-3xl dark:text-slate-100";
-const subtitle =
-  "text-lg font-semibold text-slate-900 sm:text-xl dark:text-slate-100";
+const cardClass = "rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-8";
+const bodyText = "text-[15px] leading-relaxed text-[var(--text-secondary)]";
+const sectionTitle = "font-display text-lg font-bold text-[var(--foreground)] sm:text-xl";
+const subtitle = "font-display text-[15px] font-bold text-[var(--foreground)]";
 
 const faqItems: { question: string; answer: string }[] = [
   {
@@ -37,10 +33,10 @@ const faqItems: { question: string; answer: string }[] = [
 
 export default function SobrePage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-16 pb-16">
-      <div className={`space-y-6 text-center ${panel}`}>
-        <img src="/fluxa-icon.png" alt="" className="mx-auto h-16 w-auto" />
-        <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl dark:text-slate-100">
+    <div className="mx-auto max-w-3xl space-y-7 pb-16">
+      <div className={`${cardClass} space-y-5 text-center`}>
+        <img src="/fluxa-icon.png" alt="" className="mx-auto h-14 w-auto" />
+        <h1 className="font-display text-2xl font-extrabold text-[var(--foreground)] sm:text-3xl">
           Conheça o Fluxa
         </h1>
         <div className="mx-auto max-w-2xl space-y-4">
@@ -58,10 +54,10 @@ export default function SobrePage() {
         </div>
       </div>
 
-      <section className={`${sectionSpacing} space-y-8`}>
+      <section className={`${cardClass} space-y-6`}>
         <h2 className={sectionTitle}>Filosofia</h2>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <h3 className={subtitle}>Menos automação. Mais consciência.</h3>
           <p className={bodyText}>
             Muitos aplicativos registram tudo automaticamente. Mas registrar
@@ -71,7 +67,7 @@ export default function SobrePage() {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <h3 className={subtitle}>Simplicidade é uma escolha.</h3>
           <p className={bodyText}>
             Cada funcionalidade do Fluxa existe por um motivo. Nunca porque é
@@ -84,11 +80,11 @@ export default function SobrePage() {
         </div>
       </section>
 
-      <section className={`${sectionSpacing} space-y-8`}>
+      <section className={`${cardClass} space-y-6`}>
         <h2 className={sectionTitle}>Perguntas frequentes</h2>
-        <div className="space-y-8">
+        <div className="space-y-6">
           {faqItems.map((item) => (
-            <div key={item.question} className="space-y-2">
+            <div key={item.question} className="space-y-1.5">
               <h3 className={subtitle}>{item.question}</h3>
               <p className={bodyText}>{item.answer}</p>
             </div>
@@ -96,9 +92,7 @@ export default function SobrePage() {
         </div>
       </section>
 
-      <p
-        className={`border-t border-slate-200 pt-10 text-center text-xl font-semibold text-[var(--accent)] sm:text-2xl dark:border-t dark:pt-8 dark:text-slate-100 ${panel}`}
-      >
+      <p className={`${cardClass} text-center text-lg font-bold text-[var(--foreground)] sm:text-xl`}>
         Fluxa. Seu dinheiro com mais clareza e menos complicação.
       </p>
     </div>

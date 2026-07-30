@@ -1,3 +1,4 @@
+import { downsampleTimeline, type Timeline, type TimelinePoint } from "@/lib/timeline";
 import type {
   Currency,
   InvestmentCategory,
@@ -119,17 +120,12 @@ export function getMaturityAlert(
   return null;
 }
 
-export interface PatrimonioPoint {
-  month: string;
-  value: number;
-}
-
 export function buildPatrimonioTimeline(
   positions: InvestmentPosition[],
   returns: InvestmentReturn[],
   currency: Currency,
   today: Date = new Date(),
-): PatrimonioPoint[] {
+): TimelinePoint[] {
   const relevantPositions = positions.filter((p) => p.currency === currency);
   const relevantReturns = returns.filter((r) => r.currency === currency);
   if (relevantPositions.length === 0 && relevantReturns.length === 0) return [];
@@ -143,7 +139,7 @@ export function buildPatrimonioTimeline(
   const endYear = today.getFullYear();
   const endMonth = today.getMonth() + 1;
 
-  const points: PatrimonioPoint[] = [];
+  const points: TimelinePoint[] = [];
   let year = startYear;
   let month = startMonth;
 
@@ -171,35 +167,11 @@ export function buildPatrimonioTimeline(
   return points;
 }
 
-export type TimelineGranularity = "mensal" | "semestral" | "anual";
-
-export interface InvestmentTimeline {
-  points: PatrimonioPoint[];
-  granularity: TimelineGranularity;
-}
-
 export function buildInvestmentTimeline(
   positions: InvestmentPosition[],
   returns: InvestmentReturn[],
   currency: Currency,
   today: Date = new Date(),
-): InvestmentTimeline {
-  const monthly = buildPatrimonioTimeline(positions, returns, currency, today);
-
-  if (monthly.length <= 12) {
-    return { points: monthly, granularity: "mensal" };
-  }
-
-  const granularity: TimelineGranularity = monthly.length <= 36 ? "semestral" : "anual";
-  const step = granularity === "semestral" ? 6 : 12;
-
-  const sampled: PatrimonioPoint[] = [];
-  for (let i = monthly.length - 1; i >= 0; i -= step) {
-    sampled.unshift(monthly[i]);
-  }
-  if (sampled[0] !== monthly[0]) {
-    sampled.unshift(monthly[0]);
-  }
-
-  return { points: sampled, granularity };
+): Timeline {
+  return downsampleTimeline(buildPatrimonioTimeline(positions, returns, currency, today));
 }

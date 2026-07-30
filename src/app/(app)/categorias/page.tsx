@@ -3,8 +3,13 @@
 import { useMemo, useState } from "react";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { EmojiPicker } from "@/components/EmojiPicker";
-import type { Category } from "@/types";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CATEGORICAL } from "@/lib/chart-colors";
+import { PRIMARY_CURRENCY } from "@/lib/currency";
+import { formatCurrency } from "@/lib/format";
+import type { BudgetGoal, Category } from "@/types";
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
@@ -19,11 +24,23 @@ function emptyForm() {
 }
 
 export default function CategoriasPage() {
-  const { categories, addCategory, updateCategory, deleteCategory } =
-    useFinanceData();
+  const {
+    categories,
+    transactions,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    budgetGoals,
+    addBudgetGoal,
+    updateBudgetGoal,
+    deleteBudgetGoal,
+  } = useFinanceData();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [budgetEditingId, setBudgetEditingId] = useState<string | null>(null);
+  const [budgetDraft, setBudgetDraft] = useState("");
 
   const parentCategories = useMemo(
     () => categories.filter((c) => c.parentId === null),
@@ -44,6 +61,28 @@ export default function CategoriasPage() {
     [categories, editingId],
   );
   const isEditingSubcategory = editingCategory !== null && editingCategory.parentId !== null;
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthSpendByCategory = useMemo(() => {
+    const totals = new Map<string, number>();
+    transactions
+      .filter(
+        (tx) =>
+          tx.type === "saida" &&
+          tx.date.startsWith(currentMonth) &&
+          tx.currency === PRIMARY_CURRENCY,
+      )
+      .forEach((tx) => {
+        if (!tx.categoryId) return;
+        totals.set(tx.categoryId, (totals.get(tx.categoryId) ?? 0) + tx.amount);
+      });
+    return totals;
+  }, [transactions, currentMonth]);
+
+  const goalByCategory = useMemo(
+    () => new Map(budgetGoals.filter((g) => g.categoryId).map((g) => [g.categoryId as string, g])),
+    [budgetGoals],
+  );
 
   function openNewForm() {
     setForm(emptyForm());
@@ -67,15 +106,20 @@ export default function CategoriasPage() {
     setShowForm(true);
   }
 
-  async function handleDelete(category: Category): Promise<boolean> {
-    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) return false;
+  function requestDelete(category: Category) {
+    setDeleteTarget(category);
+  }
 
-    const result = await deleteCategory(category.id);
+  async function confirmDeleteCategory() {
+    if (!deleteTarget) return;
+    const result = await deleteCategory(deleteTarget.id);
     if (!result.success) {
       window.alert(result.reason);
-      return false;
+      setDeleteTarget(null);
+      return;
     }
-    return true;
+    if (editingId === deleteTarget.id) closeForm();
+    setDeleteTarget(null);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -103,20 +147,48 @@ export default function CategoriasPage() {
     closeForm();
   }
 
+  function startBudgetEdit(categoryId: string, goal: BudgetGoal | undefined) {
+    setBudgetEditingId(categoryId);
+    setBudgetDraft(goal ? String(goal.monthlyLimit) : "");
+  }
+
+  async function saveBudget(categoryId: string) {
+    const value = Number(budgetDraft);
+    if (!value || value <= 0) return;
+
+    const existing = goalByCategory.get(categoryId);
+    if (existing) {
+      await updateBudgetGoal(existing.id, { monthlyLimit: value });
+    } else {
+      await addBudgetGoal({
+        id: `goal-${crypto.randomUUID()}`,
+        categoryId,
+        paymentMethodId: null,
+        monthlyLimit: value,
+      });
+    }
+    setBudgetEditingId(null);
+  }
+
+  async function removeBudget(goalId: string) {
+    await deleteBudgetGoal(goalId);
+    setBudgetEditingId(null);
+  }
+
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-5xl space-y-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-[var(--accent)] sm:text-xl dark:text-slate-100">
+          <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
             Categorias
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Organize categorias e subcategorias de gastos.
+          <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
+            Organize suas categorias e acompanhe o orçamento do mês
           </p>
         </div>
         <button
           onClick={() => (showForm ? closeForm() : openNewForm())}
-          className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+          className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white"
         >
           {showForm ? "Cancelar" : "+ Nova categoria"}
         </button>
@@ -125,7 +197,7 @@ export default function CategoriasPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="tech-card grid grid-cols-1 gap-6 rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-6 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-900"
+          className="grid grid-cols-1 gap-6 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6 sm:grid-cols-2"
         >
           {editingId && (
             <div className="sm:col-span-2">
@@ -205,9 +277,7 @@ export default function CategoriasPage() {
             {isEditingSubcategory && editingCategory && (
               <button
                 type="button"
-                onClick={async () => {
-                  if (await handleDelete(editingCategory)) closeForm();
-                }}
+                onClick={() => requestDelete(editingCategory)}
                 className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
               >
                 Excluir
@@ -217,57 +287,164 @@ export default function CategoriasPage() {
         </form>
       )}
 
-      <div className="space-y-4">
-        {parentCategories.map((category) => (
-          <div
-            key={category.id}
-            className="tech-card rounded-lg border border-slate-200 bg-white shadow-md dark:shadow-lg dark:shadow-black/30 p-4 dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => startEdit(category)}
-                  aria-label="Editar categoria"
-                  className="text-slate-300 hover:text-slate-700 dark:text-slate-600 dark:hover:text-slate-200"
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </button>
-                <h2 className="flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
-                  <span className="text-lg">{category.icon}</span>
-                  {category.name}
-                </h2>
-              </div>
-              <button
-                onClick={() => handleDelete(category)}
-                className="text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-              >
-                Excluir
-              </button>
-            </div>
-            {childrenOf(category.id).length > 0 && (
-              <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-                {childrenOf(category.id).map((child) => (
-                  <div
-                    key={child.id}
-                    className="flex items-center gap-2 pl-2"
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {parentCategories.map((category, index) => {
+          const goal = goalByCategory.get(category.id);
+          const spent = monthSpendByCategory.get(category.id) ?? 0;
+          const percent = goal ? Math.min(100, (spent / goal.monthlyLimit) * 100) : 0;
+          const overBudget = goal ? spent > goal.monthlyLimit : false;
+          const isEditingBudget = budgetEditingId === category.id;
+
+          return (
+            <div
+              key={category.id}
+              className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-base"
+                    style={{
+                      backgroundColor: `color-mix(in oklch, ${CATEGORICAL[index % CATEGORICAL.length]} 18%, transparent)`,
+                    }}
                   >
-                    <button
-                      onClick={() => startEdit(child)}
-                      aria-label="Editar subcategoria"
-                      className="text-slate-300 hover:text-slate-700 dark:text-slate-600 dark:hover:text-slate-200"
-                    >
-                      <PencilIcon className="h-3.5 w-3.5" />
-                    </button>
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
-                      {child.icon} {child.name}
-                    </span>
-                  </div>
-                ))}
+                    {category.icon}
+                  </span>
+                  <h2 className="font-display text-[13.5px] font-bold text-[var(--foreground)]">
+                    {category.name}
+                  </h2>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={() => startEdit(category)}
+                    aria-label="Editar categoria"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => requestDelete(category)}
+                    aria-label="Excluir categoria"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              <div className="mt-3.5">
+                {isEditingBudget ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      autoFocus
+                      value={budgetDraft}
+                      onChange={(e) => setBudgetDraft(e.target.value)}
+                      placeholder="Limite mensal"
+                      className="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                    <button
+                      onClick={() => saveBudget(category.id)}
+                      className="shrink-0 text-xs font-bold text-[var(--accent)]"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={() => setBudgetEditingId(null)}
+                      className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : goal ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p
+                        className="font-display text-xl font-extrabold tracking-tight tabular-nums"
+                        style={{
+                          color: overBudget
+                            ? "var(--chart-negative)"
+                            : "var(--foreground)",
+                        }}
+                      >
+                        {formatCurrency(spent)}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => startBudgetEdit(category.id, goal)}
+                          aria-label="Editar meta"
+                          className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                        >
+                          <PencilIcon className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => removeBudget(goal.id)}
+                          aria-label="Remover meta"
+                          className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                        >
+                          <TrashIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="my-1 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+                      de {formatCurrency(goal.monthlyLimit)}
+                    </p>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(0, percent)}%`,
+                          backgroundColor: overBudget
+                            ? "var(--chart-negative)"
+                            : "var(--chart-positive)",
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => startBudgetEdit(category.id, undefined)}
+                    className="text-xs font-semibold text-[var(--accent)]"
+                  >
+                    + Definir meta mensal
+                  </button>
+                )}
+              </div>
+
+              {childrenOf(category.id).length > 0 && (
+                <div className="mt-4 space-y-2 border-t border-[var(--background)] pt-3">
+                  {childrenOf(category.id).map((child) => (
+                    <div key={child.id} className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEdit(child)}
+                        aria-label="Editar subcategoria"
+                        className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                      >
+                        <PencilIcon className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="text-[13px] font-medium text-[var(--text-secondary)]">
+                        {child.icon} {child.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Excluir categoria"
+        message={
+          deleteTarget ? `Excluir a categoria "${deleteTarget.name}"? Essa ação não pode ser desfeita.` : ""
+        }
+        onConfirm={confirmDeleteCategory}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

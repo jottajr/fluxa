@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatCurrency, MONTH_ABBR } from "@/lib/format";
-import type { PatrimonioPoint } from "@/lib/investment-projection";
+import type { TimelinePoint } from "@/lib/timeline";
 import type { Currency } from "@/types";
 
 const WIDTH = 640;
@@ -16,11 +16,11 @@ function formatMonthLabel(month: string): string {
   return `${MONTH_ABBR[m - 1]}/${String(year).slice(2)}`;
 }
 
-export function InvestmentTimelineChart({
+export function TimelineAreaChart({
   points,
   currency,
 }: {
-  points: PatrimonioPoint[];
+  points: TimelinePoint[];
   currency: Currency;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -113,7 +113,7 @@ export function InvestmentTimelineChart({
               className={`text-[10px] ${
                 activeIndex === i
                   ? "fill-[var(--accent)] font-semibold"
-                  : "fill-slate-400 dark:fill-slate-500"
+                  : "fill-[var(--text-tertiary)]"
               }`}
             >
               {formatMonthLabel(p.month)}
@@ -140,26 +140,26 @@ export function InvestmentTimelineChart({
 
         {active && activeIndex !== null && (
           <div
-            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-lg dark:border-slate-700 dark:bg-slate-800"
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-1.5 text-xs shadow-lg"
             style={{
               left: `${(xFor(activeIndex) / WIDTH) * 100}%`,
               top: `${(yFor(active.value) / HEIGHT) * 100}%`,
               marginTop: "-8px",
             }}
           >
-            <p className="font-medium text-slate-500 dark:text-slate-400">
+            <p className="font-medium text-[var(--text-tertiary)]">
               {formatMonthLabel(active.month)}
             </p>
-            <p className="font-semibold text-slate-900 dark:text-slate-100">
+            <p className="font-semibold text-[var(--foreground)]">
               {formatCurrency(active.value, currency)}
             </p>
           </div>
         )}
       </div>
 
-      <div className="mt-1 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
+      <div className="mt-1 flex items-center justify-between text-xs text-[var(--text-tertiary)]">
         <span>{formatCurrency(first.value, currency)}</span>
-        <span className="font-medium text-slate-600 dark:text-slate-300">
+        <span className="font-medium text-[var(--text-secondary)]">
           {formatCurrency(last.value, currency)}
         </span>
       </div>

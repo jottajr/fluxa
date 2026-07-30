@@ -3,15 +3,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafaf9;
+  --foreground: #151417;
+  --surface: #ffffff;
+  --text-secondary: #57544f;
+  --text-tertiary: #9a9791;
+  --border-subtle: rgba(0, 0, 0, 0.06);
 
   --accent: #0f6e56;
   --accent-hover: #085041;
   --accent-fg: #ffffff;
 
-  --chart-positive: #2a78d6;
-  --chart-negative: #e34948;
+  --chart-positive: oklch(56% 0.14 148);
+  --chart-negative: oklch(56% 0.18 25);
   --chart-cat-1: #2a78d6;
   --chart-cat-2: #1baf7a;
   --chart-cat-3: #eda100;
@@ -25,9 +29,13 @@
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --surface: #141311;
+  --text-secondary: #b0ada6;
+  --text-tertiary: #78756e;
+  --border-subtle: rgba(255, 255, 255, 0.08);
 
-  --chart-positive: #3987e5;
-  --chart-negative: #e66767;
+  --chart-positive: oklch(70% 0.15 148);
+  --chart-negative: oklch(70% 0.16 25);
   --chart-cat-1: #3987e5;
   --chart-cat-2: #199e70;
   --chart-cat-3: #c98500;
@@ -41,14 +49,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-manrope);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 

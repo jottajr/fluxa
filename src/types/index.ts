@@ -84,3 +84,21 @@ export interface Transaction {
   installmentNumber: number | null;
   totalInstallments: number | null;
 }
+
+export interface FinancialGoal {
+  id: string;
+  name: string;
+  icon: string;
+  targetAmount: number;
+  targetDate: string | null;
+  currency: Currency;
+  note: string;
+}
+
+export interface FinancialGoalContribution {
+  id: string;
+  goalId: string;
+  date: string;
+  amount: number;
+  note: string;
+}
