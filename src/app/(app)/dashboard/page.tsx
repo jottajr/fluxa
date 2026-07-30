@@ -17,10 +17,7 @@ import {
 } from "@/lib/period";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { CurrencySelector } from "@/components/CurrencySelector";
-import {
-  CategoryBreakdownBars,
-  type CategoryBreakdownItem,
-} from "@/components/charts/CategoryBreakdownBars";
+import { type CategoryBreakdownItem } from "@/components/charts/CategoryBreakdownBars";
 import {
   PRIMARY_CURRENCY,
   presentCurrencies,
@@ -57,7 +54,7 @@ function dueDayLabel(days: number): string {
 }
 
 export default function DashboardPage() {
-  const { transactions, categories, cards, budgetGoals } = useFinanceData();
+  const { transactions, categories, cards } = useFinanceData();
 
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -109,6 +106,7 @@ export default function DashboardPage() {
 
   const entradas = entradasByCurrency[selectedCurrency] ?? 0;
   const saidas = saidasByCurrency[selectedCurrency] ?? 0;
+  const saldo = entradas - saidas;
 
   const previousRange = useMemo(() => {
     const prev = getPreviousPeriodRange(periodType, year, subPeriod);
@@ -131,14 +129,15 @@ export default function DashboardPage() {
     previousTransactions !== null
       ? sumByType(previousTransactions, "saida", selectedCurrency)
       : null;
+  const previousSaldo =
+    previousEntradas !== null && previousSaidas !== null
+      ? previousEntradas - previousSaidas
+      : null;
 
   const balanceSeries = useMemo(
     () => buildBalanceTimeline(transactions, selectedCurrency, today),
     [transactions, selectedCurrency],
   );
-  const saldoTotal = balanceSeries.at(-1)?.value ?? 0;
-  const previousSaldoTotal =
-    balanceSeries.length >= 2 ? balanceSeries[balanceSeries.length - 2].value : null;
   const balanceTimeline = useMemo(() => downsampleTimeline(balanceSeries), [balanceSeries]);
 
   const cardSpend = useMemo(() => {
@@ -161,21 +160,6 @@ export default function DashboardPage() {
       });
     return totals;
   }, [periodTransactions, cards, selectedCurrency]);
-
-  const cardBreakdown: CategoryBreakdownItem[] = useMemo(
-    () =>
-      Array.from(cardSpend.entries())
-        .map(([cardId, value], index) => {
-          const card = cards.find((c) => c.id === cardId)!;
-          return {
-            name: card.name,
-            value,
-            color: CATEGORICAL[index % CATEGORICAL.length],
-          };
-        })
-        .sort((a, b) => b.value - a.value),
-    [cardSpend, cards],
-  );
 
   const categoryBreakdown: CategoryBreakdownItem[] = useMemo(() => {
     const totalsByCategory = new Map<string, number>();
@@ -203,66 +187,8 @@ export default function DashboardPage() {
     () =>
       [...periodTransactions]
         .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, 5),
-    [periodTransactions],
-  );
-
-  const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
-  const monthSpendByCategory = useMemo(() => {
-    const totals = new Map<string, number>();
-    transactions
-      .filter(
-        (tx) =>
-          tx.type === "saida" &&
-          tx.date.startsWith(currentMonthStr) &&
-          tx.currency === PRIMARY_CURRENCY,
-      )
-      .forEach((tx) => {
-        if (!tx.categoryId) return;
-        totals.set(tx.categoryId, (totals.get(tx.categoryId) ?? 0) + tx.amount);
-      });
-    return totals;
-  }, [transactions, currentMonthStr]);
-  const monthSpendByPaymentMethod = useMemo(() => {
-    const totals = new Map<string, number>();
-    transactions
-      .filter(
-        (tx) =>
-          tx.type === "saida" &&
-          tx.date.startsWith(currentMonthStr) &&
-          tx.currency === PRIMARY_CURRENCY,
-      )
-      .forEach((tx) => {
-        if (!tx.paymentMethodId) return;
-        totals.set(
-          tx.paymentMethodId,
-          (totals.get(tx.paymentMethodId) ?? 0) + tx.amount,
-        );
-      });
-    return totals;
-  }, [transactions, currentMonthStr]);
-
-  function goalLabel(goal: (typeof budgetGoals)[number]) {
-    if (goal.categoryId) {
-      const category = categories.find((c) => c.id === goal.categoryId);
-      return category ? `${category.icon} ${category.name}` : "Categoria removida";
-    }
-    const card = cards.find((c) => c.id === goal.paymentMethodId);
-    return card ? card.name : "Cartão removido";
-  }
-
-  function goalSpend(goal: (typeof budgetGoals)[number]) {
-    if (goal.categoryId) return monthSpendByCategory.get(goal.categoryId) ?? 0;
-    if (goal.paymentMethodId) return monthSpendByPaymentMethod.get(goal.paymentMethodId) ?? 0;
-    return 0;
-  }
-
-  const topGoals = useMemo(
-    () =>
-      [...budgetGoals]
-        .sort((a, b) => goalSpend(b) / b.monthlyLimit - goalSpend(a) / a.monthlyLimit)
         .slice(0, 3),
-    [budgetGoals, monthSpendByCategory, monthSpendByPaymentMethod],
+    [periodTransactions],
   );
 
   const upcomingPayments = useMemo(
@@ -316,14 +242,6 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <KpiCard
-          label="Saldo total"
-          value={formatCurrency(saldoTotal, selectedCurrency)}
-          color={saldoTotal >= 0 ? "var(--chart-positive)" : "var(--chart-negative)"}
-          variation={
-            <Variation current={saldoTotal} previous={previousSaldoTotal} higherIsGood />
-          }
-        />
-        <KpiCard
           label="Entradas"
           value={formatCurrency(entradas, selectedCurrency)}
           color="var(--chart-positive)"
@@ -337,6 +255,14 @@ export default function DashboardPage() {
           color="var(--chart-negative)"
           variation={
             <Variation current={saidas} previous={previousSaidas} higherIsGood={false} />
+          }
+        />
+        <KpiCard
+          label="Saldo"
+          value={formatCurrency(saldo, selectedCurrency)}
+          color={saldo >= 0 ? "var(--chart-positive)" : "var(--chart-negative)"}
+          variation={
+            <Variation current={saldo} previous={previousSaldo} higherIsGood />
           }
         />
       </div>
@@ -438,66 +364,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="flex flex-col gap-6">
         <div className={cardClass}>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-sm font-bold text-[var(--foreground)]">Metas</h2>
-            <Link
-              href="/metas"
-              className="text-xs font-semibold text-[var(--accent)] hover:underline"
-            >
-              Ver todas
-            </Link>
-          </div>
-          {topGoals.length === 0 ? (
-            <EmptyState
-              message="Nenhuma meta cadastrada ainda."
-              actionLabel="Criar meta"
-              actionHref="/metas"
-            />
-          ) : (
-            <div className="space-y-4">
-              {topGoals.map((goal) => {
-                const spend = goalSpend(goal);
-                const percent =
-                  goal.monthlyLimit > 0 ? (spend / goal.monthlyLimit) * 100 : 0;
-                const overBudget = spend > goal.monthlyLimit;
-                return (
-                  <div key={goal.id}>
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate font-semibold text-[var(--foreground)]">
-                        {goalLabel(goal)}
-                      </span>
-                      <span
-                        className="shrink-0 text-xs font-medium"
-                        style={{
-                          color: overBudget
-                            ? "var(--chart-negative)"
-                            : "var(--text-tertiary)",
-                        }}
-                      >
-                        {Math.round(percent)}%
-                      </span>
-                    </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, percent))}%`,
-                          backgroundColor: overBudget
-                            ? "var(--chart-negative)"
-                            : "var(--chart-positive)",
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className={`${cardClass} flex-1`}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
               Próximos pagamentos
@@ -546,22 +413,6 @@ export default function DashboardPage() {
             </>
           )}
         </div>
-        </div>
-      </div>
-
-      <div className={cardClass}>
-        <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
-          Gasto por cartão
-        </h2>
-        {cardBreakdown.length === 0 ? (
-          <EmptyState
-            message="Nenhum gasto em cartão de crédito neste período."
-            actionLabel="Adicionar transação"
-            actionHref="/transacoes"
-          />
-        ) : (
-          <CategoryBreakdownBars data={cardBreakdown} currency={selectedCurrency} />
-        )}
       </div>
     </div>
   );
