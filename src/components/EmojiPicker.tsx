@@ -77,7 +77,7 @@ export function EmojiPicker({
         </button>
       ) : (
         <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {EXTRA_CATEGORIES.map((category) => (
               <button
                 key={category.label}
@@ -92,6 +92,13 @@ export function EmojiPicker({
                 {category.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="ml-auto text-xs font-semibold text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+            >
+              − Menos opções
+            </button>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {activeEmojis.map((emoji) => (
