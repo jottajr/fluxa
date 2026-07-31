@@ -26,6 +26,7 @@ import {
 import { buildBalanceTimeline } from "@/lib/balance-timeline";
 import { downsampleTimeline } from "@/lib/timeline";
 import { cardClass, KpiCard, Variation } from "@/components/KpiCard";
+import { buildDashboardAlerts, buildSpendingSuggestions } from "@/lib/insights";
 import type { Currency } from "@/types";
 
 const DASHBOARD_PERIOD_TABS: PeriodType[] = ["mensal", "anual", "personalizado"];
@@ -54,7 +55,14 @@ function dueDayLabel(days: number): string {
 }
 
 export default function DashboardPage() {
-  const { transactions, categories, cards } = useFinanceData();
+  const {
+    transactions,
+    categories,
+    cards,
+    budgetGoals,
+    financialGoals,
+    financialGoalContributions,
+  } = useFinanceData();
 
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -191,6 +199,24 @@ export default function DashboardPage() {
     [periodTransactions],
   );
 
+  const alerts = useMemo(
+    () => buildDashboardAlerts(transactions, cards, categories, budgetGoals, today),
+    [transactions, cards, categories, budgetGoals],
+  );
+
+  const goalTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    financialGoalContributions.forEach((c) => {
+      totals.set(c.goalId, (totals.get(c.goalId) ?? 0) + c.amount);
+    });
+    return totals;
+  }, [financialGoalContributions]);
+
+  const spendingSuggestions = useMemo(
+    () => buildSpendingSuggestions(transactions, categories, financialGoals, goalTotals, today),
+    [transactions, categories, financialGoals, goalTotals],
+  );
+
   const upcomingPayments = useMemo(
     () =>
       cards
@@ -239,6 +265,42 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              className="rounded-[10px] border px-4 py-2.5 text-[13px] font-medium"
+              style={{
+                borderColor:
+                  alert.level === "critical"
+                    ? "color-mix(in oklch, var(--chart-negative) 40%, transparent)"
+                    : "color-mix(in oklch, #d97706 40%, transparent)",
+                backgroundColor:
+                  alert.level === "critical"
+                    ? "color-mix(in oklch, var(--chart-negative) 10%, transparent)"
+                    : "color-mix(in oklch, #d97706 10%, transparent)",
+                color: "var(--foreground)",
+              }}
+            >
+              ⚠ {alert.message}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {spendingSuggestions.length > 0 && (
+        <Link
+          href="/metas"
+          className="block text-[13px] font-semibold text-[var(--accent)] hover:underline"
+        >
+          💡 {spendingSuggestions.length}{" "}
+          {spendingSuggestions.length === 1
+            ? "sugestão de economia disponível"
+            : "sugestões de economia disponíveis"}
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <KpiCard

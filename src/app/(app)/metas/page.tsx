@@ -9,10 +9,13 @@ import { GoalFormModal, type GoalFormPayload } from "@/components/GoalFormModal"
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { EmptyState } from "@/components/EmptyState";
+import { buildSpendingSuggestions } from "@/lib/insights";
 import type { FinancialGoal } from "@/types";
 
 export default function MetasPage() {
   const {
+    transactions,
+    categories,
     financialGoals,
     financialGoalContributions,
     addFinancialGoal,
@@ -32,6 +35,11 @@ export default function MetasPage() {
     });
     return totals;
   }, [financialGoalContributions]);
+
+  const suggestions = useMemo(
+    () => buildSpendingSuggestions(transactions, categories, financialGoals, currentByGoal),
+    [transactions, categories, financialGoals, currentByGoal],
+  );
 
   function openNewModal() {
     setEditingGoal(null);
@@ -94,6 +102,31 @@ export default function MetasPage() {
         onSubmit={handleSubmit}
         onDelete={editingGoal ? () => requestDelete(editingGoal) : undefined}
       />
+
+      {suggestions.length > 0 && (
+        <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
+          <h2 className="font-display mb-3 text-sm font-bold text-[var(--foreground)]">
+            Sugestões
+          </h2>
+          <ul className="space-y-2.5">
+            {suggestions.map((suggestion) => (
+              <li key={suggestion.id} className="text-sm text-[var(--text-secondary)]">
+                Você gastou{" "}
+                <span className="font-semibold text-[var(--foreground)]">
+                  {suggestion.overspendPercent}% a mais
+                </span>{" "}
+                em {suggestion.categoryName} esse mês (
+                {formatCurrency(suggestion.overspendAmount)} a mais que a média). Isso
+                equivale a{" "}
+                <span className="font-semibold text-[var(--foreground)]">
+                  {suggestion.goalPercent}%
+                </span>{" "}
+                da sua meta &ldquo;{suggestion.goalName}&rdquo;.
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {financialGoals.length === 0 ? (
         <EmptyState

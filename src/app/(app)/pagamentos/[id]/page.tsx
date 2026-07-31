@@ -13,6 +13,7 @@ import { KpiCard } from "@/components/KpiCard";
 import { EmptyState } from "@/components/EmptyState";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
+import { buildInstallmentGroups } from "@/lib/insights";
 
 export default function PaymentMethodDetailPage() {
   const params = useParams<{ id: string }>();
@@ -131,6 +132,11 @@ export default function PaymentMethodDetailPage() {
         : percentUsed >= 70
           ? "#d97706"
           : "var(--chart-positive)";
+
+  const installmentGroups = useMemo(
+    () => buildInstallmentGroups(methodTransactions),
+    [methodTransactions],
+  );
 
   const categoryBreakdown: PieSlice[] = useMemo(() => {
     const totals = new Map<string, number>();
@@ -341,6 +347,27 @@ export default function PaymentMethodDetailPage() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {card && installmentGroups.length > 0 && (
+        <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
+          <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
+            Parcelamentos ativos
+          </h2>
+          <ul className="space-y-3">
+            {installmentGroups.map((group) => (
+              <li key={group.groupId} className="text-sm text-[var(--text-secondary)]">
+                Restam{" "}
+                <span className="font-semibold text-[var(--foreground)]">
+                  {group.remainingCount} {group.remainingCount === 1 ? "parcela" : "parcelas"} de{" "}
+                  {formatCurrency(group.installmentAmount, group.currency)}
+                </span>{" "}
+                para terminar de pagar &ldquo;{group.description}&rdquo;. Última parcela em{" "}
+                {formatDate(group.lastDate)}.
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
