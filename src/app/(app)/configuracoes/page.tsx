@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ACCENT_COLOR_OPTIONS, useAccentColor } from "@/lib/accent-color-context";
+import { useFinanceData } from "@/lib/finance-data-context";
+import { clearDemoNonCardData, findDemoCards, seedDemoData } from "@/lib/demo-data";
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
@@ -61,6 +63,86 @@ function useSavedFlag() {
 
 export default function ConfiguracoesPage() {
   const { accentColor, setAccentColor } = useAccentColor();
+  const {
+    categories,
+    transactions,
+    cards,
+    budgetGoals,
+    financialGoals,
+    investmentPositions,
+    investmentReturns,
+    addCard,
+    addTransactions,
+    addBudgetGoal,
+    addFinancialGoal,
+    addFinancialGoalContribution,
+    addInvestmentPosition,
+    addInvestmentReturn,
+    deleteTransactions,
+    deleteBudgetGoal,
+    deleteCard,
+    deleteFinancialGoal,
+    deleteInvestmentPositions,
+    deleteInvestmentReturns,
+  } = useFinanceData();
+  const [demoLoading, setDemoLoading] = useState<"seed" | "clear" | null>(null);
+  const [demoMessage, setDemoMessage] = useState("");
+  const [removingDemoCards, setRemovingDemoCards] = useState(false);
+
+  async function handleSeedDemo() {
+    setDemoLoading("seed");
+    setDemoMessage("");
+    try {
+      await seedDemoData({
+        categories,
+        addCard,
+        addTransactions,
+        addBudgetGoal,
+        addFinancialGoal,
+        addFinancialGoalContribution,
+        addInvestmentPosition,
+        addInvestmentReturn,
+      });
+      setDemoMessage("Dados de exemplo criados em todas as abas.");
+    } finally {
+      setDemoLoading(null);
+    }
+  }
+
+  async function handleClearDemo() {
+    setDemoLoading("clear");
+    setDemoMessage("");
+    await clearDemoNonCardData({
+      transactions,
+      cards,
+      budgetGoals,
+      financialGoals,
+      investmentPositions,
+      investmentReturns,
+      deleteTransactions,
+      deleteBudgetGoal,
+      deleteFinancialGoal,
+      deleteInvestmentPositions,
+      deleteInvestmentReturns,
+    });
+    // o cartão só pode ser removido numa renderização seguinte, quando
+    // `cards`/`deleteCard` já refletem as exclusões acima — ver findDemoCards
+    setRemovingDemoCards(true);
+  }
+
+  useEffect(() => {
+    if (!removingDemoCards) return;
+    (async () => {
+      for (const card of findDemoCards(cards)) {
+        await deleteCard(card.id);
+      }
+      setRemovingDemoCards(false);
+      setDemoLoading(null);
+      setDemoMessage("Dados de exemplo removidos.");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [removingDemoCards]);
+
   const [name, setName] = useState("Jotta");
   const [email, setEmail] = useState("jottamoreirajr@uol.com.br");
   const [profileSaved, flashProfile] = useSavedFlag();
@@ -333,6 +415,43 @@ export default function ConfiguracoesPage() {
           )}
           <SaveButton saved={passwordSaved} label="Salvar senha" />
         </form>
+      </div>
+
+      <div
+        className="rounded-[14px] border border-dashed p-6"
+        style={{ borderColor: "var(--border-subtle)" }}
+      >
+        <h2 className="font-display mb-1 text-sm font-bold text-[var(--foreground)]">
+          Ferramentas de desenvolvimento
+        </h2>
+        <p className="mb-4 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+          Popula sua conta com lançamentos fictícios (cartão, transações, meta e
+          investimentos) pra você visualizar as telas funcionando. Diferente das seções
+          acima, isso grava dados de verdade — mas todos marcados, então dá pra remover
+          com segurança a qualquer momento sem afetar seus dados reais. Antes do Fluxa
+          virar produto pra outras pessoas, essa seção deve sair do ar.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleSeedDemo}
+            disabled={demoLoading !== null}
+            className="rounded-[11px] bg-[var(--accent)] px-[18px] py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
+          >
+            {demoLoading === "seed" ? "Criando..." : "Popular dados de exemplo"}
+          </button>
+          <button
+            onClick={handleClearDemo}
+            disabled={demoLoading !== null}
+            className="rounded-[11px] border border-[var(--border-subtle)] px-[18px] py-2.5 text-[13px] font-bold text-[var(--text-secondary)] disabled:opacity-60"
+          >
+            {demoLoading === "clear" ? "Removendo..." : "Limpar dados de exemplo"}
+          </button>
+          {demoMessage && (
+            <span className="text-xs font-medium" style={{ color: "var(--chart-positive)" }}>
+              {demoMessage}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

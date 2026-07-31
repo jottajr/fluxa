@@ -234,7 +234,7 @@ interface FinanceDataContextValue {
   ) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   deleteTransactions: (ids: string[]) => Promise<void>;
-  addCard: (card: Card) => Promise<void>;
+  addCard: (card: Card) => Promise<Card | null>;
   updateCard: (id: string, updates: Partial<Omit<Card, "id">>) => Promise<void>;
   deleteCard: (id: string) => Promise<DeleteCardResult>;
   addCategory: (category: Category) => Promise<void>;
@@ -266,7 +266,7 @@ interface FinanceDataContextValue {
   ) => Promise<void>;
   deleteBudgetGoal: (id: string) => Promise<void>;
   financialGoals: FinancialGoal[];
-  addFinancialGoal: (goal: FinancialGoal) => Promise<void>;
+  addFinancialGoal: (goal: FinancialGoal) => Promise<FinancialGoal | null>;
   updateFinancialGoal: (
     id: string,
     updates: Partial<Omit<FinancialGoal, "id">>,
@@ -526,7 +526,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function addCard(card: Card) {
+  async function addCard(card: Card): Promise<Card | null> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("payment_methods")
@@ -549,8 +549,11 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (!error && data) {
-      setCards((prev) => [...prev, rowToCard(data as PaymentMethodRow)]);
+      const newCard = rowToCard(data as PaymentMethodRow);
+      setCards((prev) => [...prev, newCard]);
+      return newCard;
     }
+    return null;
   }
 
   async function updateCard(id: string, updates: Partial<Omit<Card, "id">>) {
@@ -884,7 +887,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function addFinancialGoal(goal: FinancialGoal) {
+  async function addFinancialGoal(goal: FinancialGoal): Promise<FinancialGoal | null> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("financial_goals")
@@ -901,11 +904,11 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (!error && data) {
-      setFinancialGoals((prev) => [
-        ...prev,
-        rowToFinancialGoal(data as FinancialGoalRow),
-      ]);
+      const newGoal = rowToFinancialGoal(data as FinancialGoalRow);
+      setFinancialGoals((prev) => [...prev, newGoal]);
+      return newGoal;
     }
+    return null;
   }
 
   async function updateFinancialGoal(
