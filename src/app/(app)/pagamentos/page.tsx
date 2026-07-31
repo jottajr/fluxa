@@ -32,6 +32,7 @@ function emptyForm() {
     hasMiles: false,
     milesRatioAmount: "",
     milesRatioMiles: "",
+    monthlyBudget: "",
   };
 }
 
@@ -71,8 +72,18 @@ function getCardAlert(card: Card, transactions: Transaction[]): CardAlert | null
 }
 
 export default function PagamentosPage() {
-  const { cards, transactions, addCard, updateCard, deleteCard, genericPaymentMethods } =
-    useFinanceData();
+  const {
+    cards,
+    transactions,
+    addCard,
+    updateCard,
+    deleteCard,
+    genericPaymentMethods,
+    budgetGoals,
+    addBudgetGoal,
+    updateBudgetGoal,
+    deleteBudgetGoal,
+  } = useFinanceData();
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -105,6 +116,7 @@ export default function PagamentosPage() {
   }
 
   function startEdit(card: Card) {
+    const goal = budgetGoals.find((g) => g.paymentMethodId === card.id && !g.categoryId);
     setForm({
       name: card.name,
       bank: card.bank,
@@ -116,6 +128,7 @@ export default function PagamentosPage() {
       hasMiles: card.milesRatioAmount !== null && card.milesRatioMiles !== null,
       milesRatioAmount: card.milesRatioAmount ? String(card.milesRatioAmount) : "",
       milesRatioMiles: card.milesRatioMiles ? String(card.milesRatioMiles) : "",
+      monthlyBudget: goal ? String(goal.monthlyLimit) : "",
     });
     setEditingId(card.id);
     setShowModal(true);
@@ -146,11 +159,35 @@ export default function PagamentosPage() {
           : null,
     };
 
+    let cardId = editingId;
     if (editingId) {
       await updateCard(editingId, values);
     } else {
       const newCard: Card = { id: "", ...values };
-      await addCard(newCard);
+      const created = await addCard(newCard);
+      cardId = created?.id ?? null;
+    }
+
+    if (cardId && form.type !== "debito") {
+      const existingGoal = budgetGoals.find(
+        (g) => g.paymentMethodId === cardId && !g.categoryId,
+      );
+      const monthlyBudget = form.monthlyBudget ? Number(form.monthlyBudget) : null;
+
+      if (monthlyBudget && monthlyBudget > 0) {
+        if (existingGoal) {
+          await updateBudgetGoal(existingGoal.id, { monthlyLimit: monthlyBudget });
+        } else {
+          await addBudgetGoal({
+            id: `goal-${crypto.randomUUID()}`,
+            categoryId: null,
+            paymentMethodId: cardId,
+            monthlyLimit: monthlyBudget,
+          });
+        }
+      } else if (existingGoal) {
+        await deleteBudgetGoal(existingGoal.id);
+      }
     }
 
     closeModal();
@@ -312,6 +349,20 @@ export default function PagamentosPage() {
                     value={form.creditLimit}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, creditLimit: e.target.value }))
+                    }
+                    className={inputClass}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Meta mensal de gastos (R$, opcional)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={form.monthlyBudget}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, monthlyBudget: e.target.value }))
                     }
                     className={inputClass}
                     placeholder="0,00"

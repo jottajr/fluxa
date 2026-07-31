@@ -9,24 +9,17 @@ import { CATEGORICAL } from "@/lib/chart-colors";
 import { PRIMARY_CURRENCY } from "@/lib/currency";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PieChart, type PieSlice } from "@/components/charts/PieChart";
-import { KpiCard } from "@/components/KpiCard";
+import { ProgressRing } from "@/components/charts/ProgressRing";
+import { CardInvoiceBarChart } from "@/components/charts/CardInvoiceBarChart";
+import { cardClass, KpiCard } from "@/components/KpiCard";
 import { EmptyState } from "@/components/EmptyState";
-import { PencilIcon } from "@/components/icons/PencilIcon";
-import { TrashIcon } from "@/components/icons/TrashIcon";
-import { buildInstallmentGroups } from "@/lib/insights";
+import { buildInstallmentGroupsForMonth } from "@/lib/insights";
+import { buildCardInvoiceHistory } from "@/lib/reports";
 
 export default function PaymentMethodDetailPage() {
   const params = useParams<{ id: string }>();
-  const {
-    cards,
-    transactions,
-    categories,
-    genericPaymentMethods,
-    budgetGoals,
-    addBudgetGoal,
-    updateBudgetGoal,
-    deleteBudgetGoal,
-  } = useFinanceData();
+  const { cards, transactions, categories, genericPaymentMethods, budgetGoals } =
+    useFinanceData();
 
   const card = cards.find((c) => c.id === params.id);
   const generic = genericPaymentMethods.find((m) => m.id === params.id);
@@ -58,52 +51,9 @@ export default function PaymentMethodDetailPage() {
     [methodTransactions, selectedMonth],
   );
 
-  const currentMonthStr = new Date().toISOString().slice(0, 7);
-  const currentMonthSpend = useMemo(
-    () =>
-      methodTransactions
-        .filter(
-          (tx) =>
-            tx.type === "saida" &&
-            tx.date.startsWith(currentMonthStr) &&
-            tx.currency === PRIMARY_CURRENCY,
-        )
-        .reduce((sum, tx) => sum + tx.amount, 0),
-    [methodTransactions, currentMonthStr],
-  );
-
   const cardGoal = card
-    ? budgetGoals.find((g) => g.paymentMethodId === card.id)
+    ? budgetGoals.find((g) => g.paymentMethodId === card.id && !g.categoryId)
     : undefined;
-  const [budgetEditing, setBudgetEditing] = useState(false);
-  const [budgetDraft, setBudgetDraft] = useState("");
-
-  function startBudgetEdit() {
-    setBudgetDraft(cardGoal ? String(cardGoal.monthlyLimit) : "");
-    setBudgetEditing(true);
-  }
-
-  async function saveBudget() {
-    const value = Number(budgetDraft);
-    if (!value || value <= 0 || !card) return;
-    if (cardGoal) {
-      await updateBudgetGoal(cardGoal.id, { monthlyLimit: value });
-    } else {
-      await addBudgetGoal({
-        id: `goal-${crypto.randomUUID()}`,
-        categoryId: null,
-        paymentMethodId: card.id,
-        monthlyLimit: value,
-      });
-    }
-    setBudgetEditing(false);
-  }
-
-  async function removeBudget() {
-    if (!cardGoal) return;
-    await deleteBudgetGoal(cardGoal.id);
-    setBudgetEditing(false);
-  }
 
   const total = monthTransactions
     .filter((tx) => tx.currency === PRIMARY_CURRENCY)
@@ -114,6 +64,9 @@ export default function PaymentMethodDetailPage() {
   const totalGastos = monthTransactions
     .filter((tx) => tx.type === "saida" && tx.currency === PRIMARY_CURRENCY)
     .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const goalPercent = cardGoal ? (totalGastos / cardGoal.monthlyLimit) * 100 : null;
+  const goalOverBudget = goalPercent !== null && goalPercent > 100;
 
   const milesEarned =
     card?.milesRatioAmount && card?.milesRatioMiles
@@ -133,9 +86,14 @@ export default function PaymentMethodDetailPage() {
           ? "#d97706"
           : "var(--chart-positive)";
 
-  const installmentGroups = useMemo(
-    () => buildInstallmentGroups(methodTransactions),
-    [methodTransactions],
+  const installmentGroupsForMonth = useMemo(
+    () => buildInstallmentGroupsForMonth(methodTransactions, selectedMonth),
+    [methodTransactions, selectedMonth],
+  );
+
+  const invoiceBars = useMemo(
+    () => (card ? buildCardInvoiceHistory(methodTransactions, card.id, selectedMonth) : []),
+    [methodTransactions, card, selectedMonth],
   );
 
   const categoryBreakdown: PieSlice[] = useMemo(() => {
@@ -213,13 +171,35 @@ export default function PaymentMethodDetailPage() {
         )}
       </div>
 
+      {card && invoiceBars.length > 0 && (
+        <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
+          <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
+            Faturas
+          </h2>
+          <CardInvoiceBarChart bars={invoiceBars} onSelect={setSelectedMonth} />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <KpiCard
-          label="Total comprometido no mês"
-          value={formatCurrency(total)}
-          color="var(--foreground)"
-          variation={null}
-        />
+        <div className={cardClass}>
+          <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+            Total comprometido no mês
+          </p>
+          <p className="font-display mt-2.5 text-[28px] font-extrabold tracking-tight tabular-nums text-[var(--foreground)]">
+            {formatCurrency(total)}
+          </p>
+          {cardGoal && goalPercent !== null && (
+            <p
+              className="mt-1.5 text-[11px] font-semibold"
+              style={{ color: goalOverBudget ? "var(--chart-negative)" : "var(--text-tertiary)" }}
+            >
+              Meta: {formatCurrency(cardGoal.monthlyLimit)} —{" "}
+              {goalOverBudget
+                ? `${Math.round(goalPercent - 100)}% acima da meta`
+                : `${Math.round(goalPercent)}% gasto da meta`}
+            </p>
+          )}
+        </div>
 
         {milesEarned !== null && (
           <KpiCard
@@ -256,118 +236,44 @@ export default function PaymentMethodDetailPage() {
         )}
       </div>
 
-      {card && (
-        <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
-              Meta de gastos do cartão
-            </h2>
-            {cardGoal && !budgetEditing && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={startBudgetEdit}
-                  aria-label="Editar meta"
-                  className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={removeBudget}
-                  aria-label="Remover meta"
-                  className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3.5">
-            {budgetEditing ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  autoFocus
-                  value={budgetDraft}
-                  onChange={(e) => setBudgetDraft(e.target.value)}
-                  placeholder="Limite mensal"
-                  className="w-full max-w-[180px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                />
-                <button
-                  onClick={saveBudget}
-                  className="shrink-0 text-xs font-bold text-[var(--accent)]"
-                >
-                  Salvar
-                </button>
-                <button
-                  onClick={() => setBudgetEditing(false)}
-                  className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : cardGoal ? (
-              <>
-                <p
-                  className="font-display text-xl font-extrabold tracking-tight tabular-nums"
-                  style={{
-                    color:
-                      currentMonthSpend > cardGoal.monthlyLimit
-                        ? "var(--chart-negative)"
-                        : "var(--foreground)",
-                  }}
-                >
-                  {formatCurrency(currentMonthSpend)}
-                  <span className="text-sm font-semibold text-[var(--text-tertiary)]">
-                    {" "}
-                    / {formatCurrency(cardGoal.monthlyLimit)}
-                  </span>
-                </p>
-                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min(100, Math.max(0, (currentMonthSpend / cardGoal.monthlyLimit) * 100))}%`,
-                      backgroundColor:
-                        currentMonthSpend > cardGoal.monthlyLimit
-                          ? "var(--chart-negative)"
-                          : "var(--chart-positive)",
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={startBudgetEdit}
-                className="text-xs font-semibold text-[var(--accent)]"
-              >
-                + Definir meta mensal
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {card && installmentGroups.length > 0 && (
+      {card && installmentGroupsForMonth.length > 0 && (
         <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
           <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
             Parcelamentos ativos
           </h2>
-          <ul className="space-y-3">
-            {installmentGroups.map((group) => (
-              <li key={group.groupId} className="text-sm text-[var(--text-secondary)]">
-                Restam{" "}
-                <span className="font-semibold text-[var(--foreground)]">
-                  {group.remainingCount} {group.remainingCount === 1 ? "parcela" : "parcelas"} de{" "}
-                  {formatCurrency(group.installmentAmount, group.currency)}
-                </span>{" "}
-                para terminar de pagar &ldquo;{group.description}&rdquo;. Última parcela em{" "}
-                {formatDate(group.lastDate)}.
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-4">
+            {installmentGroupsForMonth.map((group, index) => {
+              const category = group.categoryId
+                ? categories.find((c) => c.id === group.categoryId)
+                : null;
+              const color = CATEGORICAL[index % CATEGORICAL.length];
+              return (
+                <div key={group.groupId} className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] text-base"
+                      style={{ backgroundColor: `color-mix(in oklch, ${color} 18%, transparent)` }}
+                    >
+                      {category ? category.icon : "💳"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
+                        {group.description}
+                      </p>
+                      <p className="text-[11px] font-medium text-[var(--text-tertiary)]">
+                        {formatCurrency(group.amount, group.currency)}
+                      </p>
+                    </div>
+                  </div>
+                  <ProgressRing
+                    percent={(group.installmentNumber / group.totalInstallments) * 100}
+                    label={`${group.installmentNumber}/${group.totalInstallments}`}
+                    color={color}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -410,7 +316,7 @@ export default function PaymentMethodDetailPage() {
                 </p>
               </div>
               <div className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
-                {category ? `${category.icon} ${category.name}` : "—"}
+                {category ? category.name : "—"}
               </div>
               <div
                 className="font-display text-right text-[13.5px] font-bold tracking-tight tabular-nums"

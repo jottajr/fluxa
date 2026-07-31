@@ -1,19 +1,21 @@
 "use client";
 
 import { useTheme } from "@/lib/theme-context";
+import { MoonIcon, SunIcon } from "@/components/icons/SidebarIcons";
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, toggleTheme } = useTheme();
 
   if (compact) {
+    const Icon = theme === "dark" ? MoonIcon : SunIcon;
     return (
       <button
         type="button"
         onClick={toggleTheme}
         aria-label="Alternar tema"
-        className="flex h-8 w-8 items-center justify-center rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)]"
       >
-        {theme === "dark" ? "🌙" : "☀️"}
+        <Icon className="h-[18px] w-[18px]" />
       </button>
     );
   }

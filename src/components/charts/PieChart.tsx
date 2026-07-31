@@ -17,17 +17,19 @@ export function PieChart({
   centerLabel,
   centerSubLabel,
   currency = PRIMARY_CURRENCY,
+  hideLegend = false,
 }: {
   data: PieSlice[];
   centerLabel?: string;
   centerSubLabel?: string;
   currency?: Currency;
+  hideLegend?: boolean;
 }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   let cumulativeFraction = 0;
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row">
+    <div className={`flex flex-col items-center ${hideLegend ? "" : "gap-6 sm:flex-row"}`}>
       <div className="relative h-40 w-40 shrink-0">
         <svg viewBox="0 0 160 160" className="h-40 w-40 -rotate-90">
           <circle
@@ -73,6 +75,7 @@ export function PieChart({
         </div>
       </div>
 
+      {!hideLegend && (
       <div className="w-full flex-1 space-y-2">
         {data.map((slice) => (
           <div
@@ -102,6 +105,7 @@ export function PieChart({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

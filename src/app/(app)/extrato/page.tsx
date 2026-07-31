@@ -7,13 +7,15 @@ import {
   type DateRange,
   type PeriodType,
   defaultSubPeriodFor,
+  formatPeriodLabel,
   getPeriodRange,
 } from "@/lib/period";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, STATUS_LABELS } from "@/components/StatusBadge";
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { TransactionFiltersDrawer } from "@/components/TransactionFiltersDrawer";
 import { EmptyState } from "@/components/EmptyState";
 import { getPaymentMethodLabel } from "@/lib/payment-methods";
+import { exportToCSV, exportToPDF } from "@/lib/export";
 import type { TransactionStatus } from "@/types";
 
 export default function ExtratoPage() {
@@ -68,19 +70,71 @@ export default function ExtratoPage() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [transactions, periodRange, statusFilter, categoryFilter, paymentMethodFilter]);
 
+  const exportHeaders = ["Data", "Descrição", "Categoria", "Forma de pagamento", "Valor", "Status"];
+
+  function buildExportRows() {
+    return filtered.map((tx) => [
+      formatDate(tx.date),
+      tx.description,
+      tx.categoryId && categoriesById.get(tx.categoryId)
+        ? categoriesById.get(tx.categoryId)!.name
+        : "Sem categoria",
+      getPaymentMethodLabel(tx.paymentMethodId, cards, genericPaymentMethods),
+      `${tx.type === "entrada" ? "+" : "-"}${formatCurrency(tx.amount, tx.currency)}`,
+      STATUS_LABELS[tx.status],
+    ]);
+  }
+
+  const exportFilenameBase = `extrato-${formatPeriodLabel(periodType, year, subPeriod, customRange).replace(/\s+/g, "-")}`;
+
+  function handleExportCSV() {
+    exportToCSV(`${exportFilenameBase}.csv`, exportHeaders, buildExportRows());
+  }
+
+  async function handleExportPDF() {
+    await exportToPDF(
+      `${exportFilenameBase}.pdf`,
+      `Extrato — ${formatPeriodLabel(periodType, year, subPeriod, customRange)}`,
+      exportHeaders,
+      buildExportRows(),
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-7">
+      <div>
+        <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
+          Extrato
+        </h1>
+        <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
+          Consulte todos os lançamentos do período, de acordo com os filtros
+        </p>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-xl font-extrabold text-[var(--foreground)] sm:text-2xl">
-            Extrato
-          </h1>
-          <p className="mt-0.5 text-sm font-medium text-[var(--text-tertiary)]">
-            Consulte todos os lançamentos do período, de acordo com os filtros
-          </p>
+        <div className="group relative">
+          <button className="rounded-[11px] border border-[var(--border-subtle)] px-3.5 py-2 text-[13px] font-bold text-[var(--text-secondary)] hover:border-[var(--accent)]/40">
+            Exportar
+          </button>
+          <div className="absolute left-0 top-full z-10 hidden w-36 pt-1.5 group-hover:block">
+            <div className="rounded-[11px] border border-[var(--border-subtle)] bg-[var(--surface)] p-1.5 shadow-lg">
+              <button
+                onClick={handleExportCSV}
+                className="block w-full rounded-md px-3 py-2 text-left text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
+              >
+                CSV
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="block w-full rounded-md px-3 py-2 text-left text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
+              >
+                PDF
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <PeriodSelector
             periodType={periodType}
             onPeriodTypeChange={handlePeriodTypeChange}
@@ -143,7 +197,7 @@ export default function ExtratoPage() {
             </div>
             <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">
               {tx.categoryId && categoriesById.get(tx.categoryId)
-                ? `${categoriesById.get(tx.categoryId)!.icon} ${categoriesById.get(tx.categoryId)!.name}`
+                ? categoriesById.get(tx.categoryId)!.name
                 : "—"}
             </div>
             <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">

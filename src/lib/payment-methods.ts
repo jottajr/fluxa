@@ -25,7 +25,7 @@ export function getPaymentMethodLabel(
   if (!id) return "—";
 
   const generic = genericMethods.find((method) => method.id === id);
-  if (generic) return `${generic.icon} ${generic.name}`;
+  if (generic) return generic.name;
 
   const card = cards.find((c) => c.id === id);
   return card ? card.name : "—";

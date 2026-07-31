@@ -290,7 +290,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Entradas"
           value={formatCurrency(entradas, selectedCurrency)}
-          color="var(--chart-positive)"
+          color="var(--foreground)"
           variation={
             <Variation current={entradas} previous={previousEntradas} higherIsGood />
           }
@@ -298,7 +298,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Saídas"
           value={formatCurrency(saidas, selectedCurrency)}
-          color="var(--chart-negative)"
+          color="var(--foreground)"
           variation={
             <Variation current={saidas} previous={previousSaidas} higherIsGood={false} />
           }
@@ -306,7 +306,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Saldo"
           value={formatCurrency(saldo, selectedCurrency)}
-          color={saldo >= 0 ? "var(--chart-positive)" : "var(--chart-negative)"}
+          color="var(--foreground)"
           variation={
             <Variation current={saldo} previous={previousSaldo} higherIsGood />
           }
@@ -314,87 +314,112 @@ export default function DashboardPage() {
       </div>
 
       <div className={cardClass}>
-        {paceEditing ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              autoFocus
-              value={paceDraft}
-              onChange={(e) => setPaceDraft(e.target.value)}
-              placeholder="Limite mensal geral"
-              className="w-full max-w-[200px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            />
-            <button onClick={savePace} className="shrink-0 text-xs font-bold text-[var(--accent)]">
-              Salvar
-            </button>
-            <button
-              onClick={() => setPaceEditing(false)}
-              className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
-            >
-              Cancelar
-            </button>
-          </div>
-        ) : generalGoal && dailyPace ? (
-          <>
-            <div className="flex items-center justify-between gap-3">
-              <p className="min-w-0 truncate text-[13px] text-[var(--text-secondary)]">
-                Ritmo de gastos:{" "}
-                {dailyPace.overPace ? (
-                  <span className="font-semibold text-[var(--chart-negative)]">
-                    limite de {formatCurrency(dailyPace.limit)} ultrapassado
-                  </span>
-                ) : (
-                  <>
-                    pode gastar{" "}
-                    <span className="font-display font-bold text-[var(--foreground)]">
-                      {formatCurrency(dailyPace.dailyAllowance)}
-                    </span>
-                    /dia por {dailyPace.daysRemaining}d
-                  </>
-                )}
-              </p>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="text-[11px] font-bold text-[var(--text-tertiary)]">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
+            Ritmo de Gastos
+          </h2>
+          {generalGoal && !paceEditing && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={startPaceEdit}
+                aria-label="Editar limite"
+                className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+              >
+                <PencilIcon className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={removePace}
+                aria-label="Remover limite"
+                className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+              >
+                <TrashIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3">
+          {paceEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                autoFocus
+                value={paceDraft}
+                onChange={(e) => setPaceDraft(e.target.value)}
+                placeholder="Limite mensal geral"
+                className="w-full max-w-[200px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+              <button onClick={savePace} className="shrink-0 text-xs font-bold text-[var(--accent)]">
+                Salvar
+              </button>
+              <button
+                onClick={() => setPaceEditing(false)}
+                className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : generalGoal && dailyPace ? (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 text-[13px] text-[var(--text-secondary)]">
+                  {dailyPace.overPace ? (
+                    <>
+                      Você já ultrapassou sua meta mensal de{" "}
+                      <span className="font-semibold text-[var(--chart-negative)]">
+                        {formatCurrency(dailyPace.limit)}
+                      </span>
+                      .
+                    </>
+                  ) : dailyPace.paceWarning ? (
+                    <>
+                      Fique de olho: seu ritmo diário está em{" "}
+                      <span className="font-semibold" style={{ color: "#d97706" }}>
+                        {formatCurrency(dailyPace.avgDailySpend)}
+                      </span>
+                      /dia, acima dos {formatCurrency(dailyPace.dailyAllowance)}/dia que sua
+                      meta de {formatCurrency(dailyPace.limit)} permite.
+                    </>
+                  ) : (
+                    <>
+                      Com base na sua meta mensal de {formatCurrency(dailyPace.limit)}, você
+                      pode gastar{" "}
+                      <span className="font-display font-bold text-[var(--foreground)]">
+                        {formatCurrency(dailyPace.dailyAllowance)}
+                      </span>
+                      /dia pelos próximos {dailyPace.daysRemaining}d.
+                    </>
+                  )}
+                </p>
+                <span className="shrink-0 text-[11px] font-bold text-[var(--text-tertiary)]">
                   {Math.round(dailyPace.percent)}%
                 </span>
-                <button
-                  onClick={startPaceEdit}
-                  aria-label="Editar limite"
-                  className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
-                >
-                  <PencilIcon className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={removePace}
-                  aria-label="Remover limite"
-                  className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
-                >
-                  <TrashIcon className="h-3.5 w-3.5" />
-                </button>
               </div>
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--background)]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(100, Math.max(0, dailyPace.percent))}%`,
-                  backgroundColor: dailyPace.overPace
-                    ? "var(--chart-negative)"
-                    : "var(--chart-positive)",
-                }}
-              />
-            </div>
-          </>
-        ) : (
-          <button
-            onClick={startPaceEdit}
-            className="text-xs font-semibold text-[var(--accent)]"
-          >
-            + Definir limite geral de gastos
-          </button>
-        )}
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--background)]">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, dailyPace.percent))}%`,
+                    backgroundColor: dailyPace.overPace
+                      ? "var(--chart-negative)"
+                      : dailyPace.paceWarning
+                        ? "#d97706"
+                        : "var(--chart-positive)",
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={startPaceEdit}
+              className="text-xs font-semibold text-[var(--accent)]"
+            >
+              + Definir limite geral de gastos
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_1fr]">

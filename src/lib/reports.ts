@@ -1,5 +1,5 @@
 import { CATEGORICAL } from "@/lib/chart-colors";
-import { formatMonthLabel } from "@/lib/format";
+import { formatCurrency, formatMonthLabel, monthNameOnly, MONTH_ABBR } from "@/lib/format";
 import { buildBalanceTimeline } from "@/lib/balance-timeline";
 import { PRIMARY_CURRENCY } from "@/lib/currency";
 import type {
@@ -76,11 +76,64 @@ export function buildCategorySpendReport(
         value,
         percentOfTotal: total > 0 ? Math.round((value / total) * 100) : 0,
         variationAmount: value - previousValue,
-        previousMonthLabel: formatMonthLabel(previousMonthStr).split(" de ")[0],
+        previousMonthLabel: monthNameOnly(previousMonthStr),
       };
     })
     .filter((row) => row.value > 0)
     .sort((a, b) => b.value - a.value);
+}
+
+export interface CategorySpendSummary {
+  total: number;
+  previousTotal: number;
+  variationPercent: number | null;
+  previousMonthLabel: string;
+  message: string | null;
+}
+
+export function buildCategorySpendSummary(
+  transactions: Transaction[],
+  categories: Category[],
+  today: Date = new Date(),
+): CategorySpendSummary {
+  const currentMonthStr = monthStr(today);
+  const previousMonthStr = monthStr(shiftMonth(today, -1));
+  const previousMonthLabel = monthNameOnly(previousMonthStr);
+
+  function totalSpend(monthPrefix: string) {
+    return transactions
+      .filter(
+        (tx) =>
+          tx.type === "saida" &&
+          tx.currency === PRIMARY_CURRENCY &&
+          tx.date.startsWith(monthPrefix),
+      )
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }
+
+  const total = totalSpend(currentMonthStr);
+  const previousTotal = totalSpend(previousMonthStr);
+  const variationPercent =
+    previousTotal > 0 ? Math.round(((total - previousTotal) / previousTotal) * 100) : null;
+
+  const rows = buildCategorySpendReport(transactions, categories, today);
+  if (rows.length === 0) {
+    return { total, previousTotal, variationPercent, previousMonthLabel, message: null };
+  }
+
+  const biggest = rows[0];
+  const rising = [...rows].sort((a, b) => b.variationAmount - a.variationAmount)[0];
+
+  let message = `${biggest.name} continua o maior peso`;
+  if (rising.variationAmount > 0 && rising.categoryId !== biggest.categoryId) {
+    message += ` — e ${rising.name} subiu ${formatCurrency(rising.variationAmount)} vs ${previousMonthLabel}.`;
+  } else if (rising.variationAmount > 0) {
+    message += `, e também foi quem mais subiu: ${formatCurrency(rising.variationAmount)} vs ${previousMonthLabel}.`;
+  } else {
+    message += ".";
+  }
+
+  return { total, previousTotal, variationPercent, previousMonthLabel, message };
 }
 
 // ---------- próximas faturas (parcelas futuras, todos os cartões) ----------
@@ -93,11 +146,18 @@ export interface UpcomingInstallmentItem {
   cardName: string;
 }
 
+export interface UpcomingInvoiceCardGroup {
+  cardName: string;
+  totalAmount: number;
+  items: UpcomingInstallmentItem[];
+}
+
 export interface UpcomingInvoiceMonth {
   month: string;
   label: string;
   totalAmount: number;
   items: UpcomingInstallmentItem[];
+  byCard: UpcomingInvoiceCardGroup[];
 }
 
 const UPCOMING_MONTHS_AHEAD = 6;
@@ -117,20 +177,36 @@ export function buildUpcomingInstallments(
     const month = monthStr(monthDate);
     const monthItems = pending.filter((tx) => tx.date.startsWith(month));
 
+    const items = monthItems.map((tx) => {
+      const card = cards.find((c) => c.id === tx.paymentMethodId);
+      return {
+        id: tx.id,
+        description: tx.description,
+        installmentLabel: `${tx.installmentNumber}/${tx.totalInstallments}`,
+        amount: tx.amount,
+        cardName: card ? card.name : "—",
+      };
+    });
+
+    const cardGroups = new Map<string, UpcomingInstallmentItem[]>();
+    items.forEach((item) => {
+      if (!cardGroups.has(item.cardName)) cardGroups.set(item.cardName, []);
+      cardGroups.get(item.cardName)!.push(item);
+    });
+    const byCard = Array.from(cardGroups.entries())
+      .map(([cardName, cardItems]) => ({
+        cardName,
+        totalAmount: cardItems.reduce((sum, i) => sum + i.amount, 0),
+        items: cardItems,
+      }))
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+
     months.push({
       month,
       label: formatMonthLabel(month),
-      totalAmount: monthItems.reduce((sum, tx) => sum + tx.amount, 0),
-      items: monthItems.map((tx) => {
-        const card = cards.find((c) => c.id === tx.paymentMethodId);
-        return {
-          id: tx.id,
-          description: tx.description,
-          installmentLabel: `${tx.installmentNumber}/${tx.totalInstallments}`,
-          amount: tx.amount,
-          cardName: card ? card.name : "—",
-        };
-      }),
+      totalAmount: items.reduce((sum, i) => sum + i.amount, 0),
+      items,
+      byCard,
     });
   }
 
@@ -260,6 +336,54 @@ export function buildBalanceProjection(
   };
 }
 
+// ---------- histórico de faturas de um cartão (visão anual) ----------
+
+export interface CardInvoiceBar {
+  month: string;
+  label: string;
+  total: number;
+  status: "paid" | "current" | "future";
+  selected: boolean;
+}
+
+export function buildCardInvoiceHistory(
+  transactions: Transaction[],
+  paymentMethodId: string,
+  selectedMonth: string,
+  today: Date = new Date(),
+  monthsBack = 3,
+  monthsAhead = 4,
+): CardInvoiceBar[] {
+  const [selectedYear, selectedMonthNum] = selectedMonth.split("-").map(Number);
+  const anchor = new Date(selectedYear, selectedMonthNum - 1, 1);
+  const currentMonthStr = monthStr(today);
+
+  const bars: CardInvoiceBar[] = [];
+  for (let i = -monthsBack; i <= monthsAhead; i++) {
+    const d = shiftMonth(anchor, i);
+    const month = monthStr(d);
+    const total = transactions
+      .filter(
+        (tx) =>
+          tx.paymentMethodId === paymentMethodId &&
+          tx.type === "saida" &&
+          tx.currency === PRIMARY_CURRENCY &&
+          tx.date.startsWith(month),
+      )
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    bars.push({
+      month,
+      label: `${MONTH_ABBR[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`,
+      total,
+      status: month < currentMonthStr ? "paid" : month === currentMonthStr ? "current" : "future",
+      selected: month === selectedMonth,
+    });
+  }
+
+  return bars;
+}
+
 // ---------- ritmo de gastos (meta geral) ----------
 
 export interface DailyPaceInsight {
@@ -269,6 +393,8 @@ export interface DailyPaceInsight {
   daysRemaining: number;
   dailyAllowance: number;
   overPace: boolean;
+  avgDailySpend: number;
+  paceWarning: boolean;
 }
 
 export function findGeneralBudgetGoal(budgetGoals: BudgetGoal[]): BudgetGoal | undefined {
@@ -292,14 +418,20 @@ export function buildDailyPaceInsight(
 
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, daysInMonth - today.getDate() + 1);
+  const daysElapsed = Math.max(1, today.getDate());
   const remaining = generalGoal.monthlyLimit - spend;
+  const overPace = remaining < 0;
+  const avgDailySpend = spend / daysElapsed;
+  const dailyAllowance = remaining > 0 ? remaining / daysRemaining : 0;
 
   return {
     spend,
     limit: generalGoal.monthlyLimit,
     percent: generalGoal.monthlyLimit > 0 ? (spend / generalGoal.monthlyLimit) * 100 : 0,
     daysRemaining,
-    dailyAllowance: remaining > 0 ? remaining / daysRemaining : 0,
-    overPace: remaining < 0,
+    dailyAllowance,
+    overPace,
+    avgDailySpend,
+    paceWarning: !overPace && avgDailySpend > dailyAllowance,
   };
 }

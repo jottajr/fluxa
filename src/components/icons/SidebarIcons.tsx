@@ -122,6 +122,29 @@ export function ConfiguracoesIcon({ className }: { className?: string }) {
   );
 }
 
+export function SunIcon({ className }: { className?: string }) {
+  return (
+    <IconBase className={className}>
+      <circle cx="10" cy="10" r="3.5" {...strokeProps} />
+      <path
+        d="M10 2.5V4.5M10 15.5V17.5M17.5 10H15.5M4.5 10H2.5M15.3 4.7L13.9 6.1M6.1 13.9L4.7 15.3M15.3 15.3L13.9 13.9M6.1 6.1L4.7 4.7"
+        {...strokeProps}
+      />
+    </IconBase>
+  );
+}
+
+export function MoonIcon({ className }: { className?: string }) {
+  return (
+    <IconBase className={className}>
+      <path
+        d="M16.5 12.3A7 7 0 0 1 7.7 3.5A7 7 0 1 0 16.5 12.3Z"
+        {...strokeProps}
+      />
+    </IconBase>
+  );
+}
+
 export function SobreIcon({ className }: { className?: string }) {
   return (
     <IconBase className={className}>

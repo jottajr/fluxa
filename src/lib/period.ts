@@ -74,7 +74,7 @@ export function formatPeriodLabel(
   subPeriod: number,
   customRange?: DateRange | null,
 ): string {
-  if (periodType === "mensal") return `${MONTH_NAMES[subPeriod - 1]} de ${year}`;
+  if (periodType === "mensal") return `${MONTH_NAMES[subPeriod - 1]}/${year}`;
   if (periodType === "trimestral") return `${subPeriod}º trimestre de ${year}`;
   if (periodType === "semestral") return `${subPeriod}º semestre de ${year}`;
   if (periodType === "personalizado") {

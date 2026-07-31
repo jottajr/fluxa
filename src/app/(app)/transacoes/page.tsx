@@ -638,7 +638,7 @@ export default function TransacoesPage() {
         <KpiCard
           label="Entradas"
           value={formatCurrency(totals.entradasPrimary)}
-          color="var(--chart-positive)"
+          color="var(--foreground)"
           variation={
             <Variation
               current={totals.entradasPrimary}
@@ -651,7 +651,7 @@ export default function TransacoesPage() {
         <KpiCard
           label="Saídas"
           value={formatCurrency(totals.saidasPrimary)}
-          color="var(--chart-negative)"
+          color="var(--foreground)"
           variation={
             <Variation
               current={totals.saidasPrimary}
@@ -664,7 +664,7 @@ export default function TransacoesPage() {
         <KpiCard
           label="Saldo"
           value={formatCurrency(totals.saldoPrimary)}
-          color={totals.saldoPrimary >= 0 ? "var(--chart-positive)" : "var(--chart-negative)"}
+          color="var(--foreground)"
           variation={
             <Variation
               current={totals.saldoPrimary}
@@ -771,7 +771,7 @@ export default function TransacoesPage() {
               </div>
               <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">
                 {tx.categoryId && categoriesById.get(tx.categoryId)
-                  ? `${categoriesById.get(tx.categoryId)!.icon} ${categoriesById.get(tx.categoryId)!.name}`
+                  ? categoriesById.get(tx.categoryId)!.name
                   : "—"}
               </div>
               <div className="truncate text-center text-[13px] font-medium text-[var(--text-secondary)]">

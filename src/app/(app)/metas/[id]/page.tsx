@@ -12,6 +12,7 @@ import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { EmptyState } from "@/components/EmptyState";
 import { KpiCard } from "@/components/KpiCard";
+import { ProgressBarWithMarker } from "@/components/charts/ProgressBarWithMarker";
 import type { FinancialGoalContribution } from "@/types";
 
 const inputClass =
@@ -248,11 +249,18 @@ export default function GoalDetailPage() {
             {Math.round(percent)}% concluído
           </span>
         </div>
-        <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[var(--background)]">
-          <div
-            className="h-full rounded-full bg-[var(--accent)]"
-            style={{ width: `${Math.max(0, percent)}%` }}
-          />
+        <div className="mt-4">
+          <ProgressBarWithMarker percent={percent} trackHeight={8} />
+        </div>
+        <div className="relative mt-2.5 h-4 text-[11px] font-semibold text-[var(--text-tertiary)]">
+          <span className="absolute left-0">{formatCurrency(0, goal.currency)}</span>
+          <span
+            className="absolute -translate-x-1/2 whitespace-nowrap text-[var(--accent)]"
+            style={{ left: `${Math.min(94, Math.max(6, percent))}%` }}
+          >
+            {formatCurrency(current, goal.currency)}
+          </span>
+          <span className="absolute right-0">{formatCurrency(goal.targetAmount, goal.currency)}</span>
         </div>
       </div>
 

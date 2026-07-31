@@ -6,9 +6,13 @@ import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { EmojiPicker } from "@/components/EmojiPicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { cardClass } from "@/components/KpiCard";
+import { PieChart, type PieSlice } from "@/components/charts/PieChart";
 import { CATEGORICAL } from "@/lib/chart-colors";
 import { PRIMARY_CURRENCY } from "@/lib/currency";
 import { formatCurrency } from "@/lib/format";
+import { buildCategorySpendReport, buildCategorySpendSummary } from "@/lib/reports";
 import type { BudgetGoal, Category } from "@/types";
 
 const inputClass =
@@ -46,6 +50,22 @@ export default function CategoriasPage() {
     () => categories.filter((c) => c.parentId === null),
     [categories],
   );
+
+  const today = useMemo(() => new Date(), []);
+  const categorySpend = useMemo(
+    () => buildCategorySpendReport(transactions, categories, today),
+    [transactions, categories, today],
+  );
+  const categorySummary = useMemo(
+    () => buildCategorySpendSummary(transactions, categories, today),
+    [transactions, categories, today],
+  );
+  const maxCategoryValue = Math.max(1, ...categorySpend.map((row) => row.value));
+  const donutSlices: PieSlice[] = categorySpend.map((row) => ({
+    name: `${row.icon} ${row.name}`,
+    value: row.value,
+    color: row.color,
+  }));
 
   function childrenOf(parentId: string) {
     return categories.filter((c) => c.parentId === parentId);
@@ -434,6 +454,101 @@ export default function CategoriasPage() {
             </div>
           );
         })}
+      </div>
+
+      <div className={cardClass}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
+              Gasto por categoria
+            </h2>
+            {categorySummary.message && (
+              <p className="mt-1.5 max-w-md text-[12.5px] font-medium text-[var(--text-secondary)]">
+                {categorySummary.message}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-display text-xl font-extrabold tracking-tight tabular-nums text-[var(--foreground)]">
+              {formatCurrency(categorySummary.total)}
+            </p>
+            {categorySummary.variationPercent !== null && (
+              <p
+                className="text-[11px] font-bold"
+                style={{
+                  color:
+                    categorySummary.variationPercent > 0
+                      ? "var(--chart-negative)"
+                      : "var(--chart-positive)",
+                }}
+              >
+                {categorySummary.variationPercent > 0 ? "↑" : "↓"}{" "}
+                {Math.abs(categorySummary.variationPercent)}%{" "}
+                {categorySummary.variationPercent > 0 ? "a mais" : "a menos"} que em{" "}
+                {categorySummary.previousMonthLabel}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {categorySpend.length === 0 ? (
+          <div className="mt-5">
+            <EmptyState message="Nenhum gasto categorizado neste mês." />
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 items-center gap-8 lg:grid-cols-[180px_1fr]">
+            <div className="flex justify-center">
+              <PieChart data={donutSlices} centerLabel={formatCurrency(categorySummary.total)} hideLegend />
+            </div>
+            <ul className="space-y-4">
+              {categorySpend.map((row) => (
+                <li key={row.categoryId}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-base"
+                        style={{
+                          backgroundColor: `color-mix(in oklch, ${row.color} 18%, transparent)`,
+                        }}
+                      >
+                        {row.icon}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
+                          {row.name}
+                        </p>
+                        {row.variationAmount !== 0 && (
+                          <p className="text-[11px] font-medium text-[var(--text-tertiary)]">
+                            {row.variationAmount > 0 ? "+" : "-"}
+                            {formatCurrency(Math.abs(row.variationAmount))} vs{" "}
+                            {row.previousMonthLabel}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-display text-[13.5px] font-bold tracking-tight tabular-nums text-[var(--foreground)]">
+                        {formatCurrency(row.value)}
+                      </p>
+                      <p className="text-[11px] font-medium text-[var(--text-tertiary)]">
+                        {row.percentOfTotal}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(2, (row.value / maxCategoryValue) * 100)}%`,
+                        backgroundColor: row.color,
+                      }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

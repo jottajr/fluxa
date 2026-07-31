@@ -65,12 +65,49 @@ export function buildInstallmentGroups(transactions: Transaction[]): Installment
     .sort((a, b) => a.lastDate.localeCompare(b.lastDate));
 }
 
+export interface InstallmentMonthGroup {
+  groupId: string;
+  description: string;
+  categoryId: string | null;
+  installmentNumber: number;
+  totalInstallments: number;
+  amount: number;
+  currency: Transaction["currency"];
+  date: string;
+}
+
+export function buildInstallmentGroupsForMonth(
+  transactions: Transaction[],
+  monthPrefix: string,
+): InstallmentMonthGroup[] {
+  return transactions
+    .filter(
+      (tx) =>
+        tx.installmentGroupId &&
+        tx.totalInstallments &&
+        tx.installmentNumber &&
+        tx.date.startsWith(monthPrefix),
+    )
+    .map((tx) => ({
+      groupId: tx.installmentGroupId as string,
+      description: tx.description,
+      categoryId: tx.categoryId,
+      installmentNumber: tx.installmentNumber as number,
+      totalInstallments: tx.totalInstallments as number,
+      amount: tx.amount,
+      currency: tx.currency,
+      date: tx.date,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 // ---------- alertas do dashboard ----------
 
 export interface DashboardAlert {
   id: string;
   level: "critical" | "warning";
   message: string;
+  trend: "up" | "down" | null;
 }
 
 const DUE_SOON_DAYS = 5;
@@ -118,24 +155,30 @@ export function buildDashboardAlerts(
             `Fique de olho: em ${days} ${dayWord} fecha a fatura do ${card.name}, com a parcela ${installment} de "${tx.description}" (${amount}).`,
             `${card.name}: vencimento em ${days} ${dayWord}, com a parcela ${installment} de "${tx.description}" (${amount}) na fatura.`,
           ]);
-          alerts.push({ id, level: days <= 2 ? "critical" : "warning", message });
+          alerts.push({ id, level: days <= 2 ? "critical" : "warning", message, trend: null });
         });
     });
 
-  budgetGoals.forEach((goal) => {
-    if (goal.monthlyLimit <= 0) return;
+  const ALERT_HISTORY_MONTHS = 3;
 
-    const spend = transactions
+  function goalSpendInMonth(goal: BudgetGoal, month: string): number {
+    return transactions
       .filter(
         (tx) =>
           tx.type === "saida" &&
           tx.currency === PRIMARY_CURRENCY &&
-          tx.date.startsWith(currentMonthStr) &&
+          tx.date.startsWith(month) &&
           (goal.categoryId
             ? tx.categoryId === goal.categoryId
             : tx.paymentMethodId === goal.paymentMethodId),
       )
       .reduce((sum, tx) => sum + tx.amount, 0);
+  }
+
+  budgetGoals.forEach((goal) => {
+    if (goal.monthlyLimit <= 0) return;
+
+    const spend = goalSpendInMonth(goal, currentMonthStr);
 
     const percent = (spend / goal.monthlyLimit) * 100;
     if (percent < BUDGET_WARNING_PERCENT) return;
@@ -143,28 +186,45 @@ export function buildDashboardAlerts(
     const label = goal.categoryId
       ? (() => {
           const category = categories.find((c) => c.id === goal.categoryId);
-          return category ? `${category.icon} ${category.name}` : "categoria removida";
+          return category ? category.name : "categoria removida";
         })()
       : (() => {
           const card = cards.find((c) => c.id === goal.paymentMethodId);
           return card ? card.name : "cartão removido";
         })();
 
+    const historyMonths: number[] = [];
+    for (let i = 1; i <= ALERT_HISTORY_MONTHS; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      historyMonths.push(goalSpendInMonth(goal, monthStr(d)));
+    }
+    const monthsWithData = historyMonths.filter((v) => v > 0);
+    const avgPrevious =
+      monthsWithData.length > 0
+        ? monthsWithData.reduce((sum, v) => sum + v, 0) / monthsWithData.length
+        : 0;
+    const percentVsAvg = avgPrevious > 0 ? Math.round(((spend - avgPrevious) / avgPrevious) * 100) : null;
+
     const budgetId = `budget-${goal.id}`;
     const roundedPercent = Math.round(percent);
     const spendStr = formatCurrency(spend);
     const limitStr = formatCurrency(goal.monthlyLimit);
+    const avgContext =
+      percentVsAvg !== null && percentVsAvg >= 5
+        ? ` — ${percentVsAvg}% acima da média dos últimos meses`
+        : "";
     const budgetMessage = pickVariant(budgetId, [
-      `Você já usou ${roundedPercent}% da meta de ${label} este mês (${spendStr} de ${limitStr}).`,
-      `A meta de ${label} está em ${roundedPercent}% (${spendStr} de ${limitStr}) neste mês.`,
-      `Fique atento: ${label} já consumiu ${roundedPercent}% do limite mensal (${spendStr} de ${limitStr}).`,
-      `${label} chegou a ${roundedPercent}% da meta mensal — ${spendStr} de ${limitStr} já gastos.`,
+      `Você já usou ${roundedPercent}% da meta de ${label} este mês (${spendStr} de ${limitStr})${avgContext}.`,
+      `A meta de ${label} está em ${roundedPercent}% (${spendStr} de ${limitStr}) neste mês${avgContext}.`,
+      `Fique atento: ${label} já consumiu ${roundedPercent}% do limite mensal (${spendStr} de ${limitStr})${avgContext}.`,
+      `${label} chegou a ${roundedPercent}% da meta mensal — ${spendStr} de ${limitStr} já gastos${avgContext}.`,
     ]);
 
     alerts.push({
       id: budgetId,
       level: percent >= 100 ? "critical" : "warning",
       message: budgetMessage,
+      trend: percentVsAvg === null ? null : percentVsAvg >= 0 ? "up" : "down",
     });
   });
 
@@ -184,6 +244,7 @@ export interface SpendingSuggestion {
   goalName: string;
   goalPercent: number;
   message: string;
+  trend: "up";
 }
 
 const OVERSPEND_THRESHOLD_PERCENT = 15;
@@ -259,7 +320,7 @@ export function buildSpendingSuggestions(
 
     const goalPercent = goal.targetAmount > 0 ? (overspendAmount / goal.targetAmount) * 100 : 0;
     const suggestionId = `suggestion-${category.id}`;
-    const categoryName = `${category.icon} ${category.name}`;
+    const categoryName = category.name;
     const roundedOverspendPercent = Math.round(overspendPercent);
     const overspendStr = formatCurrency(overspendAmount);
     const roundedGoalPercent = Math.round(goalPercent);
@@ -279,6 +340,7 @@ export function buildSpendingSuggestions(
       goalName: goal.name,
       goalPercent: roundedGoalPercent,
       message,
+      trend: "up",
     });
   });
 

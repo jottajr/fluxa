@@ -42,7 +42,12 @@ export const MONTH_ABBR = [
 
 export function formatMonthLabel(yearMonth: string): string {
   const [year, month] = yearMonth.split("-").map(Number);
-  return `${MONTH_NAMES[month - 1]} de ${year}`;
+  return `${MONTH_NAMES[month - 1]}/${year}`;
+}
+
+export function monthNameOnly(yearMonth: string): string {
+  const month = Number(yearMonth.split("-")[1]);
+  return MONTH_NAMES[month - 1];
 }
 
 export function addMonthsToDate(isoDate: string, months: number): string {
