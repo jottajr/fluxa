@@ -242,7 +242,7 @@ export default function RelatoriosPage() {
           média de gastos variáveis e média de aportes.
         </p>
 
-        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <KpiCard
             label="Receita fixa"
             value={formatCurrency(projection.assumptions.fixedIncome)}
@@ -258,12 +258,6 @@ export default function RelatoriosPage() {
           <KpiCard
             label="Gasto variável médio"
             value={formatCurrency(projection.assumptions.avgVariableExpense)}
-            color="var(--foreground)"
-            variation={null}
-          />
-          <KpiCard
-            label="Aporte médio"
-            value={formatCurrency(projection.assumptions.avgMonthlyContribution)}
             color="var(--foreground)"
             variation={null}
           />

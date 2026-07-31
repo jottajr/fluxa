@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -10,13 +9,10 @@ import { GoalFormModal, type GoalFormPayload } from "@/components/GoalFormModal"
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { EmptyState } from "@/components/EmptyState";
-import { buildSpendingSuggestions } from "@/lib/insights";
 import type { FinancialGoal } from "@/types";
 
 export default function MetasPage() {
   const {
-    transactions,
-    categories,
     financialGoals,
     financialGoalContributions,
     addFinancialGoal,
@@ -36,11 +32,6 @@ export default function MetasPage() {
     });
     return totals;
   }, [financialGoalContributions]);
-
-  const suggestions = useMemo(
-    () => buildSpendingSuggestions(transactions, categories, financialGoals, currentByGoal),
-    [transactions, categories, financialGoals, currentByGoal],
-  );
 
   function openNewModal() {
     setEditingGoal(null);
@@ -103,18 +94,6 @@ export default function MetasPage() {
         onSubmit={handleSubmit}
         onDelete={editingGoal ? () => requestDelete(editingGoal) : undefined}
       />
-
-      {suggestions.length > 0 && (
-        <Link
-          href="/relatorios"
-          className="block text-[13px] font-semibold text-[var(--accent)] hover:underline"
-        >
-          💡 {suggestions.length}{" "}
-          {suggestions.length === 1
-            ? "sugestão de economia disponível"
-            : "sugestões de economia disponíveis"}
-        </Link>
-      )}
 
       {financialGoals.length === 0 ? (
         <EmptyState

@@ -710,7 +710,7 @@ export default function TransacoesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-[28px_1.3fr_1fr_1fr_0.9fr_0.8fr_60px] gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+        <div className="grid grid-cols-[28px_1.7fr_0.85fr_0.85fr_0.85fr_0.75fr_60px] gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
           <input
             type="checkbox"
             checked={filtered.length > 0 && selectedIds.size === filtered.length}
@@ -718,7 +718,7 @@ export default function TransacoesPage() {
             aria-label="Selecionar todas"
             className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
           />
-          <div className="text-center">Descrição</div>
+          <div className="text-left">Descrição</div>
           <div className="text-center">Categoria</div>
           <div className="text-center">Forma de pagamento</div>
           <div className="text-right">Valor</div>
@@ -731,7 +731,7 @@ export default function TransacoesPage() {
           return (
             <div
               key={tx.id}
-              className="grid grid-cols-[28px_1.3fr_1fr_1fr_0.9fr_0.8fr_60px] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
+              className="grid grid-cols-[28px_1.7fr_0.85fr_0.85fr_0.85fr_0.75fr_60px] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
             >
               <input
                 type="checkbox"
@@ -740,7 +740,7 @@ export default function TransacoesPage() {
                 aria-label="Selecionar transação"
                 className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
               />
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center gap-3">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[12.5px] font-bold ${
                     tx.type === "entrada"

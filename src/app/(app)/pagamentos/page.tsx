@@ -8,11 +8,17 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { cardTypeLabel } from "@/lib/card-type";
+import { CATEGORICAL } from "@/lib/chart-colors";
 import type { Card, CardType, Transaction } from "@/types";
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const labelClass = "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300";
+
+function cardInitial(name: string): string {
+  const match = name.match(/[\p{L}\p{N}]/u);
+  return (match?.[0] ?? "?").toUpperCase();
+}
 
 function emptyForm() {
   return {
@@ -166,16 +172,23 @@ export default function PagamentosPage() {
           Formas gerais
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {genericPaymentMethods.map((method) => (
+          {genericPaymentMethods.map((method, index) => (
             <div
               key={method.id}
               onClick={() => router.push(`/pagamentos/${method.id}`)}
               role="button"
               tabIndex={0}
-              className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-center transition-colors hover:border-[var(--accent)]/40"
+              className="flex cursor-pointer items-center gap-2.5 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--accent)]/40"
             >
-              <span className="text-3xl">{method.icon}</span>
-              <p className="mt-2 text-sm font-semibold text-[var(--foreground)]">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-base"
+                style={{
+                  backgroundColor: `color-mix(in oklch, ${CATEGORICAL[index % CATEGORICAL.length]} 18%, transparent)`,
+                }}
+              >
+                {method.icon}
+              </span>
+              <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
                 {method.name}
               </p>
             </div>
@@ -373,66 +386,74 @@ export default function PagamentosPage() {
                 onClick={() => router.push(`/pagamentos/${card.id}`)}
                 role="button"
                 tabIndex={0}
-                className="cursor-pointer overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] transition-colors hover:border-[var(--accent)]/40"
+                className="cursor-pointer rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 transition-colors hover:border-[var(--accent)]/40"
               >
-                <div className="h-1.5" style={{ backgroundColor: card.color }} />
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-display font-bold text-[var(--foreground)]">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[13px] font-bold"
+                      style={{
+                        backgroundColor: `color-mix(in oklch, ${card.color} 18%, transparent)`,
+                        color: card.color,
+                      }}
+                    >
+                      {cardInitial(card.name)}
+                    </span>
+                    <h3 className="font-display truncate font-bold text-[var(--foreground)]">
                       {card.name}
                     </h3>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="rounded-full bg-[var(--background)] px-2.5 py-1 text-[11px] font-bold text-[var(--text-secondary)]">
-                        {cardTypeLabel(card.type)}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(card);
-                        }}
-                        aria-label="Editar cartão"
-                        className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          requestDelete(card);
-                        }}
-                        aria-label="Excluir cartão"
-                        className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">
-                    {card.bank}
-                  </p>
-                  {card.type !== "debito" && (
-                    <p className="mt-3 text-xs font-medium text-[var(--text-tertiary)]">
-                      Fecha dia {card.closingDay} · Vence dia {card.dueDay}
-                      {card.creditLimit && (
-                        <> · Limite {card.creditLimit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</>
-                      )}
-                    </p>
-                  )}
-                  {alert && (
-                    <div
-                      className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                        alert.level === "critical"
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                      }`}
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full bg-[var(--background)] px-2.5 py-1 text-[11px] font-bold text-[var(--text-secondary)]">
+                      {cardTypeLabel(card.type)}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEdit(card);
+                      }}
+                      aria-label="Editar cartão"
+                      className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
                     >
-                      ⚠ {alert.message}
-                    </div>
-                  )}
-                  <p className="mt-3 text-xs font-semibold text-[var(--accent)]">
-                    Ver detalhes →
-                  </p>
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        requestDelete(card);
+                      }}
+                      aria-label="Excluir cartão"
+                      className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
+                <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">
+                  {card.bank}
+                </p>
+                {card.type !== "debito" && (
+                  <p className="mt-3 text-xs font-medium text-[var(--text-tertiary)]">
+                    Fecha dia {card.closingDay} · Vence dia {card.dueDay}
+                    {card.creditLimit && (
+                      <> · Limite {card.creditLimit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</>
+                    )}
+                  </p>
+                )}
+                {alert && (
+                  <div
+                    className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      alert.level === "critical"
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                    }`}
+                  >
+                    ⚠ {alert.message}
+                  </div>
+                )}
+                <p className="mt-3 text-xs font-semibold text-[var(--accent)]">
+                  Ver detalhes →
+                </p>
               </div>
             );
           })}

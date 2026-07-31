@@ -109,9 +109,9 @@ export default function ExtratoPage() {
       </div>
 
       <div className="overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)]">
-        <div className="grid grid-cols-[100px_1.4fr_1fr_1fr_0.9fr_0.8fr] gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+        <div className="grid grid-cols-[100px_1.8fr_0.85fr_0.85fr_0.85fr_0.7fr] gap-3 border-b border-[var(--border-subtle)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
           <div className="text-center">Data</div>
-          <div className="text-center">Descrição</div>
+          <div className="text-left">Descrição</div>
           <div className="text-center">Categoria</div>
           <div className="text-center">Forma de pagamento</div>
           <div className="text-right">Valor</div>
@@ -121,12 +121,12 @@ export default function ExtratoPage() {
         {filtered.map((tx) => (
           <div
             key={tx.id}
-            className="grid grid-cols-[100px_1.4fr_1fr_1fr_0.9fr_0.8fr] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
+            className="grid grid-cols-[100px_1.8fr_0.85fr_0.85fr_0.85fr_0.7fr] items-center gap-3 border-b border-[var(--background)] px-6 py-3.5 last:border-b-0"
           >
             <div className="text-center text-[12.5px] font-medium text-[var(--text-tertiary)]">
               {formatDate(tx.date)}
             </div>
-            <div className="min-w-0 text-center">
+            <div className="min-w-0 text-left">
               <p className="truncate text-[13.5px] font-semibold text-[var(--foreground)]">
                 {tx.description}
                 {tx.recurring && (

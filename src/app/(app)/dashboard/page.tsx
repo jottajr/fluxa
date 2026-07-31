@@ -26,7 +26,8 @@ import {
 import { buildBalanceTimeline } from "@/lib/balance-timeline";
 import { downsampleTimeline } from "@/lib/timeline";
 import { cardClass, KpiCard, Variation } from "@/components/KpiCard";
-import { buildDashboardAlerts, buildSpendingSuggestions } from "@/lib/insights";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { buildDailyPaceInsight, findGeneralBudgetGoal } from "@/lib/reports";
 import type { Currency } from "@/types";
 
@@ -61,8 +62,6 @@ export default function DashboardPage() {
     categories,
     cards,
     budgetGoals,
-    financialGoals,
-    financialGoalContributions,
     addBudgetGoal,
     updateBudgetGoal,
     deleteBudgetGoal,
@@ -203,24 +202,6 @@ export default function DashboardPage() {
     [periodTransactions],
   );
 
-  const alerts = useMemo(
-    () => buildDashboardAlerts(transactions, cards, categories, budgetGoals, today),
-    [transactions, cards, categories, budgetGoals],
-  );
-
-  const goalTotals = useMemo(() => {
-    const totals = new Map<string, number>();
-    financialGoalContributions.forEach((c) => {
-      totals.set(c.goalId, (totals.get(c.goalId) ?? 0) + c.amount);
-    });
-    return totals;
-  }, [financialGoalContributions]);
-
-  const spendingSuggestions = useMemo(
-    () => buildSpendingSuggestions(transactions, categories, financialGoals, goalTotals, today),
-    [transactions, categories, financialGoals, goalTotals],
-  );
-
   const generalGoal = useMemo(() => findGeneralBudgetGoal(budgetGoals), [budgetGoals]);
   const dailyPace = useMemo(
     () => (generalGoal ? buildDailyPaceInsight(transactions, generalGoal, today) : null),
@@ -305,124 +286,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {(alerts.length > 0 || spendingSuggestions.length > 0) && (
-        <Link
-          href="/relatorios"
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"
-        >
-          {alerts.length > 0 && (
-            <span>
-              🔔 {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"}
-            </span>
-          )}
-          {alerts.length > 0 && spendingSuggestions.length > 0 && <span>·</span>}
-          {spendingSuggestions.length > 0 && (
-            <span>
-              💡 {spendingSuggestions.length}{" "}
-              {spendingSuggestions.length === 1 ? "sugestão" : "sugestões"} de economia
-            </span>
-          )}
-        </Link>
-      )}
-
-      <div className={cardClass}>
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
-            Ritmo de gastos
-          </h2>
-          {generalGoal && !paceEditing && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={startPaceEdit}
-                aria-label="Editar limite"
-                className="text-xs font-semibold text-[var(--accent)]"
-              >
-                Editar
-              </button>
-              <button
-                onClick={removePace}
-                aria-label="Remover limite"
-                className="text-xs font-semibold text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
-              >
-                Remover
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-3.5">
-          {paceEditing ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                autoFocus
-                value={paceDraft}
-                onChange={(e) => setPaceDraft(e.target.value)}
-                placeholder="Limite mensal geral"
-                className="w-full max-w-[200px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              />
-              <button onClick={savePace} className="shrink-0 text-xs font-bold text-[var(--accent)]">
-                Salvar
-              </button>
-              <button
-                onClick={() => setPaceEditing(false)}
-                className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
-              >
-                Cancelar
-              </button>
-            </div>
-          ) : generalGoal && dailyPace ? (
-            <>
-              <p className="text-sm text-[var(--text-secondary)]">
-                {dailyPace.overPace ? (
-                  <>
-                    Você já passou do seu limite mensal de{" "}
-                    <span className="font-semibold text-[var(--chart-negative)]">
-                      {formatCurrency(dailyPace.limit)}
-                    </span>
-                    .
-                  </>
-                ) : (
-                  <>
-                    Você pode gastar mais{" "}
-                    <span className="font-display font-bold text-[var(--foreground)]">
-                      {formatCurrency(dailyPace.dailyAllowance)}
-                    </span>{" "}
-                    por dia ({dailyPace.daysRemaining}{" "}
-                    {dailyPace.daysRemaining === 1 ? "dia restante" : "dias restantes"}) para
-                    não estourar sua meta de {formatCurrency(dailyPace.limit)}.
-                  </>
-                )}
-              </p>
-              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, dailyPace.percent))}%`,
-                    backgroundColor: dailyPace.overPace
-                      ? "var(--chart-negative)"
-                      : "var(--chart-positive)",
-                  }}
-                />
-              </div>
-              <p className="mt-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-                {formatCurrency(dailyPace.spend)} de {formatCurrency(dailyPace.limit)} gastos
-                este mês ({Math.round(dailyPace.percent)}%)
-              </p>
-            </>
-          ) : (
-            <button
-              onClick={startPaceEdit}
-              className="text-xs font-semibold text-[var(--accent)]"
-            >
-              + Definir limite geral de gastos
-            </button>
-          )}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <KpiCard
           label="Entradas"
@@ -448,6 +311,90 @@ export default function DashboardPage() {
             <Variation current={saldo} previous={previousSaldo} higherIsGood />
           }
         />
+      </div>
+
+      <div className={cardClass}>
+        {paceEditing ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              autoFocus
+              value={paceDraft}
+              onChange={(e) => setPaceDraft(e.target.value)}
+              placeholder="Limite mensal geral"
+              className="w-full max-w-[200px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
+            <button onClick={savePace} className="shrink-0 text-xs font-bold text-[var(--accent)]">
+              Salvar
+            </button>
+            <button
+              onClick={() => setPaceEditing(false)}
+              className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : generalGoal && dailyPace ? (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-[13px] text-[var(--text-secondary)]">
+                Ritmo de gastos:{" "}
+                {dailyPace.overPace ? (
+                  <span className="font-semibold text-[var(--chart-negative)]">
+                    limite de {formatCurrency(dailyPace.limit)} ultrapassado
+                  </span>
+                ) : (
+                  <>
+                    pode gastar{" "}
+                    <span className="font-display font-bold text-[var(--foreground)]">
+                      {formatCurrency(dailyPace.dailyAllowance)}
+                    </span>
+                    /dia por {dailyPace.daysRemaining}d
+                  </>
+                )}
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-[11px] font-bold text-[var(--text-tertiary)]">
+                  {Math.round(dailyPace.percent)}%
+                </span>
+                <button
+                  onClick={startPaceEdit}
+                  aria-label="Editar limite"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--foreground)]"
+                >
+                  <PencilIcon className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={removePace}
+                  aria-label="Remover limite"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+                >
+                  <TrashIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--background)]">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.min(100, Math.max(0, dailyPace.percent))}%`,
+                  backgroundColor: dailyPace.overPace
+                    ? "var(--chart-negative)"
+                    : "var(--chart-positive)",
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <button
+            onClick={startPaceEdit}
+            className="text-xs font-semibold text-[var(--accent)]"
+          >
+            + Definir limite geral de gastos
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_1fr]">
