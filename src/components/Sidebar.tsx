@@ -71,12 +71,12 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--surface)] md:flex">
+      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--surface)] xl:flex">
         <NavLinks pathname={pathname} />
       </aside>
 
       {open && (
-        <div className="fixed inset-0 z-30 md:hidden">
+        <div className="fixed inset-0 z-30 xl:hidden">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={onClose}

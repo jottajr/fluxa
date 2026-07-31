@@ -56,7 +56,7 @@ export function Header({
         <button
           onClick={onMenuClick}
           aria-label="Abrir menu"
-          className="-ml-1.5 rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 md:hidden"
+          className="-ml-1.5 rounded-md p-1.5 text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 xl:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>

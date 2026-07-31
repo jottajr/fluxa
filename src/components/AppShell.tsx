@@ -24,7 +24,7 @@ export function AppShell({
       />
       <div className="flex flex-1">
         <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-        <main className="flex-1 overflow-x-hidden overflow-y-visible px-4 py-6 sm:px-8 sm:py-8">
+        <main className="flex-1 overflow-x-auto overflow-y-visible px-4 py-6 sm:px-8 sm:py-8">
           {children}
         </main>
       </div>
