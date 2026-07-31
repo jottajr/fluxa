@@ -10,6 +10,7 @@ import {
   InvestimentosIcon,
   MetasIcon,
   PagamentosIcon,
+  RelatoriosIcon,
   SobreIcon,
   TransacoesIcon,
 } from "@/components/icons/SidebarIcons";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/categorias", label: "Categorias", Icon: CategoriasIcon },
   { href: "/investimentos", label: "Investimentos", Icon: InvestimentosIcon },
   { href: "/metas", label: "Metas", Icon: MetasIcon },
+  { href: "/relatorios", label: "Relatórios", Icon: RelatoriosIcon },
   { href: "/configuracoes", label: "Configurações", Icon: ConfiguracoesIcon },
   { href: "/sobre", label: "Conheça o Fluxa", Icon: SobreIcon },
 ];

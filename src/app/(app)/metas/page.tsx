@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useFinanceData } from "@/lib/finance-data-context";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -104,28 +105,15 @@ export default function MetasPage() {
       />
 
       {suggestions.length > 0 && (
-        <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface)] p-6">
-          <h2 className="font-display mb-3 text-sm font-bold text-[var(--foreground)]">
-            Sugestões
-          </h2>
-          <ul className="space-y-2.5">
-            {suggestions.map((suggestion) => (
-              <li key={suggestion.id} className="text-sm text-[var(--text-secondary)]">
-                Você gastou{" "}
-                <span className="font-semibold text-[var(--foreground)]">
-                  {suggestion.overspendPercent}% a mais
-                </span>{" "}
-                em {suggestion.categoryName} esse mês (
-                {formatCurrency(suggestion.overspendAmount)} a mais que a média). Isso
-                equivale a{" "}
-                <span className="font-semibold text-[var(--foreground)]">
-                  {suggestion.goalPercent}%
-                </span>{" "}
-                da sua meta &ldquo;{suggestion.goalName}&rdquo;.
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Link
+          href="/relatorios"
+          className="block text-[13px] font-semibold text-[var(--accent)] hover:underline"
+        >
+          💡 {suggestions.length}{" "}
+          {suggestions.length === 1
+            ? "sugestão de economia disponível"
+            : "sugestões de economia disponíveis"}
+        </Link>
       )}
 
       {financialGoals.length === 0 ? (

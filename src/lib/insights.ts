@@ -10,6 +10,14 @@ function monthStr(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
 }
 
+function pickVariant<T>(id: string, variants: T[]): T {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % variants.length;
+  }
+  return variants[Math.abs(hash) % variants.length];
+}
+
 // ---------- parcelamentos ativos ----------
 
 export interface InstallmentGroup {
@@ -100,14 +108,17 @@ export function buildDashboardAlerts(
             tx.date.startsWith(currentMonthStr),
         )
         .forEach((tx) => {
-          alerts.push({
-            id: `installment-${tx.id}`,
-            level: days <= 2 ? "critical" : "warning",
-            message: `Parcela ${tx.installmentNumber}/${tx.totalInstallments} de "${tx.description}" (${formatCurrency(
-              tx.amount,
-              tx.currency,
-            )}) está na fatura do ${card.name}, que vence em ${days} ${days === 1 ? "dia" : "dias"}.`,
-          });
+          const id = `installment-${tx.id}`;
+          const installment = `${tx.installmentNumber}/${tx.totalInstallments}`;
+          const amount = formatCurrency(tx.amount, tx.currency);
+          const dayWord = days === 1 ? "dia" : "dias";
+          const message = pickVariant(id, [
+            `Parcela ${installment} de "${tx.description}" (${amount}) está na fatura do ${card.name}, que vence em ${days} ${dayWord}.`,
+            `A fatura do ${card.name} vence em ${days} ${dayWord} e inclui a parcela ${installment} de "${tx.description}" (${amount}).`,
+            `Fique de olho: em ${days} ${dayWord} fecha a fatura do ${card.name}, com a parcela ${installment} de "${tx.description}" (${amount}).`,
+            `${card.name}: vencimento em ${days} ${dayWord}, com a parcela ${installment} de "${tx.description}" (${amount}) na fatura.`,
+          ]);
+          alerts.push({ id, level: days <= 2 ? "critical" : "warning", message });
         });
     });
 
@@ -139,12 +150,21 @@ export function buildDashboardAlerts(
           return card ? card.name : "cartão removido";
         })();
 
+    const budgetId = `budget-${goal.id}`;
+    const roundedPercent = Math.round(percent);
+    const spendStr = formatCurrency(spend);
+    const limitStr = formatCurrency(goal.monthlyLimit);
+    const budgetMessage = pickVariant(budgetId, [
+      `Você já usou ${roundedPercent}% da meta de ${label} este mês (${spendStr} de ${limitStr}).`,
+      `A meta de ${label} está em ${roundedPercent}% (${spendStr} de ${limitStr}) neste mês.`,
+      `Fique atento: ${label} já consumiu ${roundedPercent}% do limite mensal (${spendStr} de ${limitStr}).`,
+      `${label} chegou a ${roundedPercent}% da meta mensal — ${spendStr} de ${limitStr} já gastos.`,
+    ]);
+
     alerts.push({
-      id: `budget-${goal.id}`,
+      id: budgetId,
       level: percent >= 100 ? "critical" : "warning",
-      message: `Você já usou ${Math.round(percent)}% da meta de ${label} este mês (${formatCurrency(
-        spend,
-      )} de ${formatCurrency(goal.monthlyLimit)}).`,
+      message: budgetMessage,
     });
   });
 
@@ -163,6 +183,7 @@ export interface SpendingSuggestion {
   overspendAmount: number;
   goalName: string;
   goalPercent: number;
+  message: string;
 }
 
 const OVERSPEND_THRESHOLD_PERCENT = 15;
@@ -237,14 +258,27 @@ export function buildSpendingSuggestions(
     }
 
     const goalPercent = goal.targetAmount > 0 ? (overspendAmount / goal.targetAmount) * 100 : 0;
+    const suggestionId = `suggestion-${category.id}`;
+    const categoryName = `${category.icon} ${category.name}`;
+    const roundedOverspendPercent = Math.round(overspendPercent);
+    const overspendStr = formatCurrency(overspendAmount);
+    const roundedGoalPercent = Math.round(goalPercent);
+
+    const message = pickVariant(suggestionId, [
+      `Você gastou ${roundedOverspendPercent}% a mais em ${categoryName} esse mês (${overspendStr} a mais que a média). Isso equivale a ${roundedGoalPercent}% da sua meta "${goal.name}".`,
+      `${categoryName} ficou ${roundedOverspendPercent}% acima da média este mês — ${overspendStr} a mais, o equivalente a ${roundedGoalPercent}% da meta "${goal.name}".`,
+      `Seu gasto em ${categoryName} subiu ${roundedOverspendPercent}% em relação à média (${overspendStr}). Isso representa ${roundedGoalPercent}% da meta "${goal.name}".`,
+      `Fique de olho em ${categoryName}: ${roundedOverspendPercent}% acima do normal esse mês, o que equivale a ${roundedGoalPercent}% da meta "${goal.name}".`,
+    ]);
 
     suggestions.push({
-      id: `suggestion-${category.id}`,
-      categoryName: `${category.icon} ${category.name}`,
-      overspendPercent: Math.round(overspendPercent),
+      id: suggestionId,
+      categoryName,
+      overspendPercent: roundedOverspendPercent,
       overspendAmount,
       goalName: goal.name,
-      goalPercent: Math.round(goalPercent),
+      goalPercent: roundedGoalPercent,
+      message,
     });
   });
 

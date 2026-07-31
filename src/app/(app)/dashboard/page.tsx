@@ -27,6 +27,7 @@ import { buildBalanceTimeline } from "@/lib/balance-timeline";
 import { downsampleTimeline } from "@/lib/timeline";
 import { cardClass, KpiCard, Variation } from "@/components/KpiCard";
 import { buildDashboardAlerts, buildSpendingSuggestions } from "@/lib/insights";
+import { buildDailyPaceInsight, findGeneralBudgetGoal } from "@/lib/reports";
 import type { Currency } from "@/types";
 
 const DASHBOARD_PERIOD_TABS: PeriodType[] = ["mensal", "anual", "personalizado"];
@@ -62,6 +63,9 @@ export default function DashboardPage() {
     budgetGoals,
     financialGoals,
     financialGoalContributions,
+    addBudgetGoal,
+    updateBudgetGoal,
+    deleteBudgetGoal,
   } = useFinanceData();
 
   const today = new Date();
@@ -217,6 +221,41 @@ export default function DashboardPage() {
     [transactions, categories, financialGoals, goalTotals],
   );
 
+  const generalGoal = useMemo(() => findGeneralBudgetGoal(budgetGoals), [budgetGoals]);
+  const dailyPace = useMemo(
+    () => (generalGoal ? buildDailyPaceInsight(transactions, generalGoal, today) : null),
+    [transactions, generalGoal],
+  );
+  const [paceEditing, setPaceEditing] = useState(false);
+  const [paceDraft, setPaceDraft] = useState("");
+
+  function startPaceEdit() {
+    setPaceDraft(generalGoal ? String(generalGoal.monthlyLimit) : "");
+    setPaceEditing(true);
+  }
+
+  async function savePace() {
+    const value = Number(paceDraft);
+    if (!value || value <= 0) return;
+    if (generalGoal) {
+      await updateBudgetGoal(generalGoal.id, { monthlyLimit: value });
+    } else {
+      await addBudgetGoal({
+        id: `goal-${crypto.randomUUID()}`,
+        categoryId: null,
+        paymentMethodId: null,
+        monthlyLimit: value,
+      });
+    }
+    setPaceEditing(false);
+  }
+
+  async function removePace() {
+    if (!generalGoal) return;
+    await deleteBudgetGoal(generalGoal.id);
+    setPaceEditing(false);
+  }
+
   const upcomingPayments = useMemo(
     () =>
       cards
@@ -266,41 +305,123 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {alerts.length > 0 && (
-        <div className="space-y-2">
-          {alerts.map((alert) => (
-            <div
-              key={alert.id}
-              className="rounded-[10px] border px-4 py-2.5 text-[13px] font-medium"
-              style={{
-                borderColor:
-                  alert.level === "critical"
-                    ? "color-mix(in oklch, var(--chart-negative) 40%, transparent)"
-                    : "color-mix(in oklch, #d97706 40%, transparent)",
-                backgroundColor:
-                  alert.level === "critical"
-                    ? "color-mix(in oklch, var(--chart-negative) 10%, transparent)"
-                    : "color-mix(in oklch, #d97706 10%, transparent)",
-                color: "var(--foreground)",
-              }}
-            >
-              ⚠ {alert.message}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {spendingSuggestions.length > 0 && (
+      {(alerts.length > 0 || spendingSuggestions.length > 0) && (
         <Link
-          href="/metas"
-          className="block text-[13px] font-semibold text-[var(--accent)] hover:underline"
+          href="/relatorios"
+          className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"
         >
-          💡 {spendingSuggestions.length}{" "}
-          {spendingSuggestions.length === 1
-            ? "sugestão de economia disponível"
-            : "sugestões de economia disponíveis"}
+          {alerts.length > 0 && (
+            <span>
+              🔔 {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"}
+            </span>
+          )}
+          {alerts.length > 0 && spendingSuggestions.length > 0 && <span>·</span>}
+          {spendingSuggestions.length > 0 && (
+            <span>
+              💡 {spendingSuggestions.length}{" "}
+              {spendingSuggestions.length === 1 ? "sugestão" : "sugestões"} de economia
+            </span>
+          )}
         </Link>
       )}
+
+      <div className={cardClass}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
+            Ritmo de gastos
+          </h2>
+          {generalGoal && !paceEditing && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={startPaceEdit}
+                aria-label="Editar limite"
+                className="text-xs font-semibold text-[var(--accent)]"
+              >
+                Editar
+              </button>
+              <button
+                onClick={removePace}
+                aria-label="Remover limite"
+                className="text-xs font-semibold text-[var(--text-tertiary)] hover:text-[var(--chart-negative)]"
+              >
+                Remover
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3.5">
+          {paceEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                autoFocus
+                value={paceDraft}
+                onChange={(e) => setPaceDraft(e.target.value)}
+                placeholder="Limite mensal geral"
+                className="w-full max-w-[200px] rounded-md border border-slate-300 px-2.5 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+              <button onClick={savePace} className="shrink-0 text-xs font-bold text-[var(--accent)]">
+                Salvar
+              </button>
+              <button
+                onClick={() => setPaceEditing(false)}
+                className="shrink-0 text-xs font-medium text-[var(--text-tertiary)]"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : generalGoal && dailyPace ? (
+            <>
+              <p className="text-sm text-[var(--text-secondary)]">
+                {dailyPace.overPace ? (
+                  <>
+                    Você já passou do seu limite mensal de{" "}
+                    <span className="font-semibold text-[var(--chart-negative)]">
+                      {formatCurrency(dailyPace.limit)}
+                    </span>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Você pode gastar mais{" "}
+                    <span className="font-display font-bold text-[var(--foreground)]">
+                      {formatCurrency(dailyPace.dailyAllowance)}
+                    </span>{" "}
+                    por dia ({dailyPace.daysRemaining}{" "}
+                    {dailyPace.daysRemaining === 1 ? "dia restante" : "dias restantes"}) para
+                    não estourar sua meta de {formatCurrency(dailyPace.limit)}.
+                  </>
+                )}
+              </p>
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, dailyPace.percent))}%`,
+                    backgroundColor: dailyPace.overPace
+                      ? "var(--chart-negative)"
+                      : "var(--chart-positive)",
+                  }}
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                {formatCurrency(dailyPace.spend)} de {formatCurrency(dailyPace.limit)} gastos
+                este mês ({Math.round(dailyPace.percent)}%)
+              </p>
+            </>
+          ) : (
+            <button
+              onClick={startPaceEdit}
+              className="text-xs font-semibold text-[var(--accent)]"
+            >
+              + Definir limite geral de gastos
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <KpiCard

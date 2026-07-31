@@ -97,6 +97,18 @@ export function MetasIcon({ className }: { className?: string }) {
   );
 }
 
+export function RelatoriosIcon({ className }: { className?: string }) {
+  return (
+    <IconBase className={className}>
+      <path d="M4 16.5V3.5" {...strokeProps} />
+      <path d="M4 16.5H17" {...strokeProps} />
+      <path d="M7 13.5V9.5" {...strokeProps} />
+      <path d="M10.5 13.5V6.5" {...strokeProps} />
+      <path d="M14 13.5V11" {...strokeProps} />
+    </IconBase>
+  );
+}
+
 export function ConfiguracoesIcon({ className }: { className?: string }) {
   return (
     <IconBase className={className}>
