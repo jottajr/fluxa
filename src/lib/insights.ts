@@ -1,6 +1,13 @@
 import { formatCurrency } from "@/lib/format";
 import { PRIMARY_CURRENCY } from "@/lib/currency";
-import type { BudgetGoal, Card, Category, FinancialGoal, Transaction } from "@/types";
+import type {
+  BudgetGoal,
+  Card,
+  Category,
+  FinancialGoal,
+  OnboardingMotivation,
+  Transaction,
+} from "@/types";
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -108,6 +115,7 @@ export interface DashboardAlert {
   level: "critical" | "warning";
   message: string;
   trend: "up" | "down" | null;
+  kind: "fatura" | "limite";
 }
 
 const DUE_SOON_DAYS = 5;
@@ -155,7 +163,13 @@ export function buildDashboardAlerts(
             `Fique de olho: em ${days} ${dayWord} fecha a fatura do ${card.name}, com a parcela ${installment} de "${tx.description}" (${amount}).`,
             `${card.name}: vencimento em ${days} ${dayWord}, com a parcela ${installment} de "${tx.description}" (${amount}) na fatura.`,
           ]);
-          alerts.push({ id, level: days <= 2 ? "critical" : "warning", message, trend: null });
+          alerts.push({
+            id,
+            level: days <= 2 ? "critical" : "warning",
+            message,
+            trend: null,
+            kind: "fatura",
+          });
         });
     });
 
@@ -225,6 +239,7 @@ export function buildDashboardAlerts(
       level: percent >= 100 ? "critical" : "warning",
       message: budgetMessage,
       trend: percentVsAvg === null ? null : percentVsAvg >= 0 ? "up" : "down",
+      kind: "limite",
     });
   });
 
@@ -345,4 +360,51 @@ export function buildSpendingSuggestions(
   });
 
   return suggestions.sort((a, b) => b.overspendAmount - a.overspendAmount).slice(0, 3);
+}
+
+// ---------- priorização personalizada (baseada no onboarding) ----------
+
+export interface CombinedInsight {
+  id: string;
+  kind: "fatura" | "limite" | "economia";
+  level: "critical" | "warning" | "info";
+  message: string;
+  trend: "up" | "down" | null;
+}
+
+// Ordem de prioridade dos tipos de insight por motivação escolhida no
+// onboarding. "visao_geral" (ou sem preferência) mantém a ordem padrão:
+// alertas primeiro (já vêm ordenados por severidade), sugestões depois.
+const MOTIVATION_PRIORITY: Record<Exclude<OnboardingMotivation, "visao_geral">, CombinedInsight["kind"][]> = {
+  dividas: ["fatura", "limite", "economia"],
+  guardar: ["economia", "limite", "fatura"],
+  dia_a_dia: ["limite", "economia", "fatura"],
+};
+
+export function buildPersonalizedInsights(
+  alerts: DashboardAlert[],
+  suggestions: SpendingSuggestion[],
+  motivation?: OnboardingMotivation,
+): CombinedInsight[] {
+  const combined: CombinedInsight[] = [
+    ...alerts.map((a) => ({
+      id: a.id,
+      kind: a.kind,
+      level: a.level,
+      message: a.message,
+      trend: a.trend,
+    })),
+    ...suggestions.map((s) => ({
+      id: s.id,
+      kind: "economia" as const,
+      level: "info" as const,
+      message: s.message,
+      trend: s.trend,
+    })),
+  ];
+
+  if (!motivation || motivation === "visao_geral") return combined;
+
+  const priority = MOTIVATION_PRIORITY[motivation];
+  return [...combined].sort((a, b) => priority.indexOf(a.kind) - priority.indexOf(b.kind));
 }

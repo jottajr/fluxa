@@ -3,7 +3,33 @@
 import { useEffect, useState } from "react";
 import { ACCENT_COLOR_OPTIONS, useAccentColor } from "@/lib/accent-color-context";
 import { useFinanceData } from "@/lib/finance-data-context";
+import { useOnboarding } from "@/lib/onboarding-context";
 import { clearDemoNonCardData, findDemoCards, seedDemoData } from "@/lib/demo-data";
+import { Modal } from "@/components/Modal";
+import { OnboardingWizard } from "@/components/OnboardingWizard";
+import type { OnboardingPreferences } from "@/types";
+
+const MOTIVATION_LABELS: Record<OnboardingPreferences["motivation"], string> = {
+  dividas: "Sair das dívidas",
+  guardar: "Guardar dinheiro",
+  dia_a_dia: "Controlar o dia a dia",
+  visao_geral: "Ver tudo num só lugar",
+};
+const INCOME_LABELS: Record<OnboardingPreferences["income"], string> = {
+  fixa: "Fixa",
+  variavel: "Variável",
+  mista: "Mista",
+};
+const PAYMENT_PATTERN_LABELS: Record<OnboardingPreferences["paymentPattern"], string> = {
+  parcelado: "Majoritariamente parcelado",
+  misto: "Misto",
+  vista_pix: "Quase tudo à vista ou Pix",
+};
+const ORGANIZATION_LABELS: Record<OnboardingPreferences["organization"], string> = {
+  sozinho: "Sozinho",
+  parceiro: "Com cônjuge ou parceiro",
+  familia: "Com a família toda",
+};
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
@@ -63,6 +89,16 @@ function useSavedFlag() {
 
 export default function ConfiguracoesPage() {
   const { accentColor, setAccentColor } = useAccentColor();
+  const { preferences, savePreferences } = useOnboarding();
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [savingOnboarding, setSavingOnboarding] = useState(false);
+
+  async function handleOnboardingComplete(prefs: OnboardingPreferences) {
+    setSavingOnboarding(true);
+    const ok = await savePreferences(prefs);
+    setSavingOnboarding(false);
+    if (ok) setShowOnboardingModal(false);
+  }
   const {
     categories,
     transactions,
@@ -416,6 +452,68 @@ export default function ConfiguracoesPage() {
           <SaveButton saved={passwordSaved} label="Salvar senha" />
         </form>
       </div>
+
+      <div className={cardClass}>
+        <div className="border-b border-[var(--background)] px-6 py-4">
+          <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
+            Personalização
+          </h2>
+          <p className="mt-0.5 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+            Suas respostas do onboarding — usadas pra priorizar o que aparece primeiro
+            no Dashboard e em Relatórios
+          </p>
+        </div>
+        {preferences ? (
+          <div className={rowClass}>
+            <ul className="space-y-1 text-[13px] text-[var(--text-secondary)]">
+              <li>
+                <span className="font-semibold text-[var(--foreground)]">Motivação:</span>{" "}
+                {MOTIVATION_LABELS[preferences.motivation]}
+              </li>
+              <li>
+                <span className="font-semibold text-[var(--foreground)]">Renda:</span>{" "}
+                {INCOME_LABELS[preferences.income]}
+              </li>
+              <li>
+                <span className="font-semibold text-[var(--foreground)]">Pagamento:</span>{" "}
+                {PAYMENT_PATTERN_LABELS[preferences.paymentPattern]}
+              </li>
+              <li>
+                <span className="font-semibold text-[var(--foreground)]">Organização:</span>{" "}
+                {ORGANIZATION_LABELS[preferences.organization]}
+              </li>
+              <li>
+                <span className="font-semibold text-[var(--foreground)]">Avisos:</span>{" "}
+                {preferences.proactiveAlerts ? "Me avisa sempre" : "Só quando eu abrir o app"}
+              </li>
+            </ul>
+            <button
+              onClick={() => setShowOnboardingModal(true)}
+              className="text-xs font-semibold text-[var(--accent)]"
+            >
+              Editar respostas
+            </button>
+          </div>
+        ) : (
+          <div className={rowClass}>
+            <p className="text-[13px] text-[var(--text-tertiary)]">
+              Nenhuma resposta salva ainda.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <Modal
+        open={showOnboardingModal}
+        onClose={() => setShowOnboardingModal(false)}
+        title="Editar respostas"
+      >
+        <OnboardingWizard
+          initialPreferences={preferences}
+          onComplete={handleOnboardingComplete}
+          saving={savingOnboarding}
+        />
+      </Modal>
 
       <div
         className="rounded-[14px] border border-dashed p-6"

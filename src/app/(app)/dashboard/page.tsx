@@ -29,6 +29,7 @@ import { cardClass, KpiCard, Variation } from "@/components/KpiCard";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import { buildDailyPaceInsight, findGeneralBudgetGoal } from "@/lib/reports";
+import { useOnboarding } from "@/lib/onboarding-context";
 import type { Currency } from "@/types";
 
 const DASHBOARD_PERIOD_TABS: PeriodType[] = ["mensal", "anual", "personalizado"];
@@ -66,6 +67,12 @@ export default function DashboardPage() {
     updateBudgetGoal,
     deleteBudgetGoal,
   } = useFinanceData();
+  const { preferences } = useOnboarding();
+  const motivation = preferences?.motivation;
+  // ordem dos widgets personalizada pela resposta do onboarding — ver
+  // src/lib/insights.ts para a mesma lógica aplicada aos insights de Relatórios
+  const swapCategoryRow = motivation === "dia_a_dia";
+  const swapPaymentsRow = motivation === "dividas";
 
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -423,7 +430,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_1fr]">
-        <div className={cardClass}>
+        <div className={`${cardClass} ${swapCategoryRow ? "lg:order-2" : ""}`}>
           <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
             Evolução do saldo
           </h2>
@@ -445,7 +452,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className={cardClass}>
+        <div className={`${cardClass} ${swapCategoryRow ? "lg:order-1" : ""}`}>
           <h2 className="font-display mb-4 text-sm font-bold text-[var(--foreground)]">
             Gastos por categoria
           </h2>
@@ -462,7 +469,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.65fr_1fr]">
-        <div className={cardClass}>
+        <div className={`${cardClass} ${swapPaymentsRow ? "lg:order-2" : ""}`}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
               Últimas transações
@@ -519,7 +526,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className={cardClass}>
+        <div className={`${cardClass} ${swapPaymentsRow ? "lg:order-1" : ""}`}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-sm font-bold text-[var(--foreground)]">
               Próximos pagamentos

@@ -102,3 +102,16 @@ export interface FinancialGoalContribution {
   amount: number;
   note: string;
 }
+
+export type OnboardingMotivation = "dividas" | "guardar" | "dia_a_dia" | "visao_geral";
+export type OnboardingIncome = "fixa" | "variavel" | "mista";
+export type OnboardingPaymentPattern = "parcelado" | "misto" | "vista_pix";
+export type OnboardingOrganization = "sozinho" | "parceiro" | "familia";
+
+export interface OnboardingPreferences {
+  motivation: OnboardingMotivation;
+  income: OnboardingIncome;
+  paymentPattern: OnboardingPaymentPattern;
+  organization: OnboardingOrganization;
+  proactiveAlerts: boolean;
+}

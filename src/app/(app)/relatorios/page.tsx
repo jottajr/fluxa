@@ -7,8 +7,10 @@ import { cardClass, KpiCard } from "@/components/KpiCard";
 import { TimelineAreaChart } from "@/components/charts/TimelineAreaChart";
 import { formatCurrency } from "@/lib/format";
 import { PRIMARY_CURRENCY } from "@/lib/currency";
-import { buildDashboardAlerts, buildSpendingSuggestions } from "@/lib/insights";
+import { buildDashboardAlerts, buildPersonalizedInsights, buildSpendingSuggestions } from "@/lib/insights";
 import { buildBalanceProjection } from "@/lib/reports";
+import { useOnboarding } from "@/lib/onboarding-context";
+import type { OnboardingMotivation } from "@/types";
 
 type TabId = "geral" | "projecao";
 
@@ -16,6 +18,19 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "geral", label: "Visão geral" },
   { id: "projecao", label: "Projeção de saldo" },
 ];
+
+const MOTIVATION_LABEL: Record<OnboardingMotivation, string> = {
+  dividas: "sair das dívidas",
+  guardar: "guardar dinheiro",
+  dia_a_dia: "controlar o dia a dia",
+  visao_geral: "",
+};
+
+const LEVEL_COLOR: Record<"critical" | "warning" | "info", string> = {
+  critical: "var(--chart-negative)",
+  warning: "#d97706",
+  info: "var(--accent)",
+};
 
 function TrendArrow({ trend }: { trend: "up" | "down" | null }) {
   if (!trend) return null;
@@ -46,6 +61,8 @@ export default function RelatoriosPage() {
 
   const today = useMemo(() => new Date(), []);
   const [activeTab, setActiveTab] = useState<TabId>("geral");
+  const { preferences } = useOnboarding();
+  const motivation = preferences?.motivation;
 
   const alerts = useMemo(
     () => buildDashboardAlerts(transactions, cards, categories, budgetGoals, today),
@@ -63,6 +80,11 @@ export default function RelatoriosPage() {
   const spendingSuggestions = useMemo(
     () => buildSpendingSuggestions(transactions, categories, financialGoals, goalTotals, today),
     [transactions, categories, financialGoals, goalTotals, today],
+  );
+
+  const personalizedInsights = useMemo(
+    () => buildPersonalizedInsights(alerts, spendingSuggestions, motivation),
+    [alerts, spendingSuggestions, motivation],
   );
 
   const projection = useMemo(
@@ -109,25 +131,23 @@ export default function RelatoriosPage() {
             <EmptyState message="Nenhum alerta ou sugestão no momento. Tudo em ordem!" />
           )}
 
-          {alerts.map((alert) => (
-            <div key={alert.id} className={cardClass}>
-              <div className="flex items-start gap-2.5">
-                {alert.trend ? (
-                  <TrendArrow trend={alert.trend} />
-                ) : (
-                  <InsightDot color={alert.level === "critical" ? "var(--chart-negative)" : "#d97706"} />
-                )}
-                <p className="flex-1 text-[13px] text-[var(--text-secondary)]">{alert.message}</p>
-              </div>
-            </div>
-          ))}
+          {!isInsightsEmpty && motivation && motivation !== "visao_geral" && (
+            <p className="text-[12px] font-medium text-[var(--text-tertiary)]">
+              Ordenado com base no que você nos contou: foco em{" "}
+              {MOTIVATION_LABEL[motivation]}.
+            </p>
+          )}
 
-          {spendingSuggestions.map((suggestion) => (
-            <div key={suggestion.id} className={cardClass}>
+          {personalizedInsights.map((insight) => (
+            <div key={insight.id} className={cardClass}>
               <div className="flex items-start gap-2.5">
-                <TrendArrow trend={suggestion.trend} />
+                {insight.trend ? (
+                  <TrendArrow trend={insight.trend} />
+                ) : (
+                  <InsightDot color={LEVEL_COLOR[insight.level]} />
+                )}
                 <p className="flex-1 text-[13px] text-[var(--text-secondary)]">
-                  {suggestion.message}
+                  {insight.message}
                 </p>
               </div>
             </div>
